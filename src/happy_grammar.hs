@@ -29,23 +29,41 @@ import Datatypes
       '/'             { TokenDiv }
       '('             { TokenOB }
       ')'             { TokenCB }
-      '&'             { TokenAnd }
-      '|'             { TokenOr }
+      and             { TokenAnd }
+      or              { TokenOr }
+      '=='            { TokenCmp }
+      '>'             { TokenGT }
+      '<'             { TokenLT }
       separator       { TokenSep }
       intType         { TokenIntType }
       '::'            { TokenDecl }
+      true            { TokenTrue }
+      false           { TokenFalse }
 %%
 
 PStmt :                          { PSkip }
       | var '=' PExp             { PAsgn $1 $3 }
       | PStmt separator PStmt    { PScln $1 $3 }
-      | if PExp then '{' PStmt '}' else '{' PStmt '}' { PIfStmt $2 $5 $9 }
-      | while PExp '{' PStmt '}' { PWhile $2 $4 }
+      | if BExp1 then '{' PStmt '}' else '{' PStmt '}' { PIfStmt $2 $5 $9 }
+      | while BExp1 '{' PStmt '}' { PWhile $2 $4 }
       | PDecl PStmt              { PBegin $1 $2 }
 
 PDecl : let var '::' intType     { PDecl $2 (Num 0)}
       | PDecl separator PDecl    { PDScln $1 $3 }
       | PDecl separator          { PDScln $1 PDSkip }
+
+BExp1 : BExp1 or BExp1           { Or $1 $3 }
+      | BExp2                    { BExp2 $1 }
+
+BExp2 : BExp2 and BExp2          { And $1 $3 }
+      | true                     { BVal True }
+      | false                    { BVal False }
+      | '(' BExp1 ')'            { BBrack $2 }
+      | PCmp                     { PCmp $1 }
+
+PCmp  : PExp '==' PExp           { PCmpExp EQ $1 $3 }
+      | PExp '>' PExp            { PCmpExp GT $1 $3 }
+      | PExp '<' PExp            { PCmpExp LT $1 $3 }
 
 PExp  : let var '=' PExp in PExp { Let $2 $4 $6 }
       | Exp1                    { Exp1 $1 }
@@ -93,8 +111,6 @@ data Token
       | TokenDiv
       | TokenOB
       | TokenCB
-      | TokenAnd
-      | TokenOr
       | TokenSep
       | TokenIf
       | TokenThen
@@ -104,6 +120,13 @@ data Token
       | TokenWhile
       | TokenIntType
       | TokenDecl
+      | TokenAnd
+      | TokenOr
+      | TokenCmp
+      | TokenGT
+      | TokenLT
+      | TokenTrue
+      | TokenFalse
  deriving Show
 
 lexer :: String -> [Token]
@@ -112,6 +135,7 @@ lexer (c:cs)
       | isSpace c = lexer cs
       | isAlpha c = lexVar (c:cs)
       | isDigit c = lexNum (c:cs)
+lexer ('=':'=':cs) = TokenCmp : lexer cs
 lexer ('=':cs) = TokenEq : lexer cs
 lexer ('+':cs) = TokenPlus : lexer cs
 lexer ('-':cs) = TokenMinus : lexer cs
@@ -119,12 +143,12 @@ lexer ('*':cs) = TokenTimes : lexer cs
 lexer ('/':cs) = TokenDiv : lexer cs
 lexer ('(':cs) = TokenOB : lexer cs
 lexer (')':cs) = TokenCB : lexer cs
-lexer ('&':cs) = TokenAnd : lexer cs
-lexer ('|':cs) = TokenOr : lexer cs
 lexer (';':cs) = TokenSep : lexer cs
 lexer ('\n':cs) = TokenSep : lexer cs
 lexer ('{':cs) = TokenLBracket : lexer cs
 lexer ('}':cs) = TokenRBracket : lexer cs
+lexer ('<':cs) = TokenLT : lexer cs
+lexer ('>':cs) = TokenGT : lexer cs
 lexer (':':':':cs) = TokenDecl : lexer cs
 
 numBool :: Int -> Bool
@@ -149,6 +173,10 @@ lexVar cs =
       ("let",rest) -> TokenLet : lexer rest
       ("in",rest)  -> TokenIn : lexer rest
       ("Int",rest)  -> TokenIntType : lexer rest
+      ("True", rest) -> TokenTrue : lexer rest
+      ("False", rest) -> TokenFalse : lexer rest
+      ("and", rest) -> TokenAnd : lexer rest
+      ("or", rest) -> TokenOr : lexer rest
       (var,rest)   -> TokenVar var : lexer rest
 
 --main = getContents >>= print . calc . lexer

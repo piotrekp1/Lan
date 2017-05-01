@@ -8,12 +8,19 @@ data Exp =
     | ELet Var Exp Exp
     deriving (Show)
 
+data BExp =
+     BEBool Bool
+    | BEOp Op BExp BExp
+    | BEVar Var
+    | BCmp Ordering Exp Exp
+    deriving (Show)
+
 data Stmt =
       Skip
     | SAsgn Var Exp
     | SScln Stmt Stmt
-    | SIfStmt Exp Stmt Stmt
-    | SWhile Exp Stmt
+    | SIfStmt BExp Stmt Stmt
+    | SWhile BExp Stmt
     | SBegin Decl Stmt
     deriving (Show)
 

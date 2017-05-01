@@ -1,7 +1,7 @@
 module DTCleaner where
 import ParseDatatypes
 import SemanticDatatypes
-
+import Datatypes
 
 semPExp :: PExp -> Exp
 semPExp (Let str pexp1 pexp2) = ELet str (semPExp pexp1) (semPExp pexp2)
@@ -25,8 +25,8 @@ semPStmt :: PStmt -> Stmt
 semPStmt (PSkip) = Skip
 semPStmt (PAsgn var pexp) = SAsgn var $ semPExp pexp
 semPStmt (PScln pstmt1 pstmt2) = SScln (semPStmt pstmt1) (semPStmt pstmt2)
-semPStmt (PIfStmt pexp pstmt1 pstmt2) = SIfStmt (semPExp pexp) (semPStmt pstmt1) (semPStmt pstmt2)
-semPStmt (PWhile pexp pstmt) = SWhile (semPExp pexp) (semPStmt pstmt)
+semPStmt (PIfStmt pbexp pstmt1 pstmt2) = SIfStmt (semPBexp1 pbexp) (semPStmt pstmt1) (semPStmt pstmt2)
+semPStmt (PWhile pexp pstmt) = SWhile (semPBexp1 pexp) (semPStmt pstmt)
 semPStmt (PBegin pdecl pstmt) = SBegin (semPDecl pdecl) (semPStmt pstmt)
 
 
@@ -34,3 +34,18 @@ semPDecl :: PDecl -> Decl
 semPDecl (PDSkip) = DSkip
 semPDecl (PDecl var datatype) = DDecl var datatype
 semPDecl (PDScln pdecl1 pdecl2) = DScln (semPDecl pdecl1) (semPDecl pdecl2)
+
+
+semPBexp1 :: BExp1 -> BExp
+semPBexp1 (Or bexp1_1 bexp1_2) = BEOp OpOr (semPBexp1 bexp1_1) (semPBexp1 bexp1_2)
+semPBexp1 (BExp2 bexp2) = semPBexp2 bexp2
+
+semPBexp2 :: BExp2 -> BExp
+semPBexp2 (And bexp1_1 bexp1_2) = BEOp OpAnd (semPBexp2 bexp1_1) (semPBexp2 bexp1_2)
+semPBexp2 (BBrack bexp1) = semPBexp1 bexp1
+semPBexp2 (BVal bval) = BEBool bval
+semPBexp2 (PCmp pcmp) = semPCmp pcmp
+
+semPCmp :: PCmp -> BExp
+semPCmp (PCmpExp comp pexp1 pexp2) = BCmp comp (semPExp pexp1) (semPExp pexp2)
+

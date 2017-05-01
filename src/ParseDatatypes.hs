@@ -26,8 +26,8 @@ data PStmt
     = PSkip
     | PAsgn Var PExp
     | PScln PStmt PStmt
-    | PIfStmt PExp PStmt PStmt
-    | PWhile PExp PStmt
+    | PIfStmt BExp1 PStmt PStmt
+    | PWhile BExp1 PStmt
     | PBegin PDecl PStmt
     deriving Show
 
@@ -35,4 +35,20 @@ data PDecl
     = PDSkip
     | PDecl Var Datatype
     | PDScln PDecl PDecl
+    deriving Show
+
+data BExp1
+    = Or BExp1 BExp1
+    | BExp2 BExp2
+    deriving Show
+
+data BExp2
+    = And BExp2 BExp2
+    | BBrack BExp1
+    | PCmp PCmp
+    | BVal Bool
+    deriving Show
+
+data PCmp
+    = PCmpExp Ordering PExp PExp
     deriving Show

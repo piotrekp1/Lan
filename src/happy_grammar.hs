@@ -11,6 +11,12 @@ import Datatypes
 
 
 %token
+      while           { TokenWhile }
+      '{'             { TokenLBracket }
+      '}'             { TokenRBracket }
+      if              { TokenIf }
+      then            { TokenThen }
+      else            { TokenElse }
       let             { TokenLet }
       in              { TokenIn }
       int             { TokenInt $$ }
@@ -25,9 +31,23 @@ import Datatypes
       ')'             { TokenCB }
       '&'             { TokenAnd }
       '|'             { TokenOr }
+      separator       { TokenSep }
+      intType         { TokenIntType }
+      '::'            { TokenDecl }
 %%
 
-PExp  : let var '=' PExp in PExp{ Let $2 $4 $6 }
+PStmt :                          { PSkip }
+      | var '=' PExp             { PAsgn $1 $3 }
+      | PStmt separator PStmt    { PScln $1 $3 }
+      | if PExp then '{' PStmt '}' else '{' PStmt '}' { PIfStmt $2 $5 $9 }
+      | while PExp '{' PStmt '}' { PWhile $2 $4 }
+      | PDecl PStmt              { PBegin $1 $2 }
+
+PDecl : let var '::' intType     { PDecl $2 (Num 0)}
+      | PDecl separator PDecl    { PDScln $1 $3 }
+      | PDecl separator          { PDScln $1 PDSkip }
+
+PExp  : let var '=' PExp in PExp { Let $2 $4 $6 }
       | Exp1                    { Exp1 $1 }
 
 Exp1  : Exp1 '+' Exp1           { E1Op OpAdd $1 $3 }
@@ -75,6 +95,15 @@ data Token
       | TokenCB
       | TokenAnd
       | TokenOr
+      | TokenSep
+      | TokenIf
+      | TokenThen
+      | TokenElse
+      | TokenRBracket
+      | TokenLBracket
+      | TokenWhile
+      | TokenIntType
+      | TokenDecl
  deriving Show
 
 lexer :: String -> [Token]
@@ -92,6 +121,11 @@ lexer ('(':cs) = TokenOB : lexer cs
 lexer (')':cs) = TokenCB : lexer cs
 lexer ('&':cs) = TokenAnd : lexer cs
 lexer ('|':cs) = TokenOr : lexer cs
+lexer (';':cs) = TokenSep : lexer cs
+lexer ('\n':cs) = TokenSep : lexer cs
+lexer ('{':cs) = TokenLBracket : lexer cs
+lexer ('}':cs) = TokenRBracket : lexer cs
+lexer (':':':':cs) = TokenDecl : lexer cs
 
 numBool :: Int -> Bool
 numBool 1 = True
@@ -108,8 +142,13 @@ lexBool cs = TokenBool (numBool $ read num) : lexer rest
 
 lexVar cs =
    case span isAlpha cs of
+      ("while", rest) -> TokenWhile : lexer rest
+      ("if", rest) -> TokenIf : lexer rest
+      ("then", rest) -> TokenThen : lexer rest
+      ("else", rest) -> TokenElse : lexer rest
       ("let",rest) -> TokenLet : lexer rest
       ("in",rest)  -> TokenIn : lexer rest
+      ("Int",rest)  -> TokenIntType : lexer rest
       (var,rest)   -> TokenVar var : lexer rest
 
 --main = getContents >>= print . calc . lexer

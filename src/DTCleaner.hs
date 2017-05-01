@@ -19,3 +19,18 @@ semFact :: Factor -> Exp
 semFact (Int a) = EInt a
 semFact (Var varName) = EVar varName
 semFact (Brack pexp) = semPExp pexp
+
+
+semPStmt :: PStmt -> Stmt
+semPStmt (PSkip) = Skip
+semPStmt (PAsgn var pexp) = SAsgn var $ semPExp pexp
+semPStmt (PScln pstmt1 pstmt2) = SScln (semPStmt pstmt1) (semPStmt pstmt2)
+semPStmt (PIfStmt pexp pstmt1 pstmt2) = SIfStmt (semPExp pexp) (semPStmt pstmt1) (semPStmt pstmt2)
+semPStmt (PWhile pexp pstmt) = SWhile (semPExp pexp) (semPStmt pstmt)
+semPStmt (PBegin pdecl pstmt) = SBegin (semPDecl pdecl) (semPStmt pstmt)
+
+
+semPDecl :: PDecl -> Decl
+semPDecl (PDSkip) = DSkip
+semPDecl (PDecl var datatype) = DDecl var datatype
+semPDecl (PDScln pdecl1 pdecl2) = DScln (semPDecl pdecl1) (semPDecl pdecl2)

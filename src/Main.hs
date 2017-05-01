@@ -1,6 +1,6 @@
 module Main where
---import Stmt
+import Stmt
 --import AbstractSyn
-import EvalExp
+--import EvalExp
 
-main = evalRawExp
+main = stmt_main

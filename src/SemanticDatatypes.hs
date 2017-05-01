@@ -18,6 +18,7 @@ data Stmt =
     deriving (Show)
 
 data Decl =
-      DDecl Var Datatype -- standardowo inicjalizowane na jakąś wartość
+      DSkip
+    | DDecl Var Datatype -- standardowo inicjalizowane na jakąś wartość
     | DScln Decl Decl
     deriving (Show)

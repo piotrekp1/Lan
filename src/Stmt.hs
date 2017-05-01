@@ -6,6 +6,7 @@ import qualified Data.Map as DMap
 import Datatypes
 import SemanticDatatypes
 import Parser
+import DTCleaner
 
 type Loc = Int
 
@@ -101,7 +102,7 @@ execStmt' (SIfStmt exp stmt1 stmt2) = do
     (Num res) <- evalExp' exp -- todo obsługa błędnego typu, zamiana na bool
     if res == 0 then execStmt' stmt2 else execStmt' stmt1
 -- while loop
-execStmt' loop@(SWhile exp stmt) = execStmt' (SIfStmt exp stmt Skip)
+execStmt' loop@(SWhile exp stmt) = execStmt' (SIfStmt exp (SScln stmt loop) Skip)
 -- Semicolon
 execStmt' (SScln stmt1 stmt2) = do
     execStmt' stmt1
@@ -142,10 +143,10 @@ showStoreHelper counter iter st = do
 showState :: Env -> Store -> IO()
 showState [] _ = return ()
 showState ((varName, varLoc):envrest) store = do
-    let (Just val) = DMap.lookup varLoc store
-    putStrLn $ varName ++ ": " ++ (show val)
+    case DMap.lookup varLoc store of
+        Just val -> putStrLn $ varName ++ ": " ++ (show val)
+        Nothing -> putStrLn $ varName ++ ": Nothing"
     showState envrest store
-
 
 
 {- DECL -}
@@ -160,12 +161,17 @@ declareDecl (DDecl varName value) store env = -- todo obsługa podwójnych dekla
 declareDecl (DScln decl1 decl2) store env =
     let (store1, env1) = declareDecl decl1 store env in
     declareDecl decl2 store1 env1
-
+-- skip
+declareDecl (DSkip) store env = (store, env)
 
 stmt_main = do
     contents <- getContents
-    let abstractSyn = getTree contents
-    putStrLn "todo"
+    let abstractSyn = semPStmt $ getTree contents
+    putStrLn $ show abstractSyn
+    let env = [("x", 0), ("y", 1) , ("z", 2)]
+    showStore $ stateStmt abstractSyn
+
+
 
 
 

@@ -1,8 +1,6 @@
 module ParseDatatypes where
 import Datatypes
 
-data ParseData = PExp' PExp | Exp1' Exp1 | Term' Term | Factor' Factor
-
 data PExp
       = Let String PExp PExp
       | Exp1 Exp1
@@ -23,3 +21,18 @@ data Factor
       | Var String
       | Brack PExp
       deriving Show
+
+data PStmt
+    = PSkip
+    | PAsgn Var PExp
+    | PScln PStmt PStmt
+    | PIfStmt PExp PStmt PStmt
+    | PWhile PExp PStmt
+    | PBegin PDecl PStmt
+    deriving Show
+
+data PDecl
+    = PDSkip
+    | PDecl Var Datatype
+    | PDScln PDecl PDecl
+    deriving Show

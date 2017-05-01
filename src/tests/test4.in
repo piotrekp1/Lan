@@ -1,0 +1,17 @@
+let x :: Int;
+let y :: Int;
+let z :: Int;
+let k :: Int;
+x = 5 + 7;
+if 6 - 5 then {
+    y = 8;
+    z = 3;
+    while z {
+        z = z - 1;
+        y = y + x;
+    }
+} else {
+    y = 9
+};
+y = y / 5;
+k = (4 + 5) * 3

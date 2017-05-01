@@ -4,4 +4,4 @@ import DTCleaner
 
 syn = do
     contents <- getContents
-    putStrLn $ show $ semPExp $ getTree contents
+    putStrLn $ show $ semPStmt $ getTree contents

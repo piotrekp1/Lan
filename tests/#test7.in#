@@ -1,0 +1,8 @@
+let x :: Int;
+let y :: Int;
+let t :: Int;
+
+
+x = y = 7;
+x = if y > 5 then { while y > 0 : y = y - 2; y } else 2;
+y = 8;

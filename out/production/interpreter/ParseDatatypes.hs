@@ -22,29 +22,19 @@ data Factor
       | Brack PExp
       deriving Show
 
-data PBlock
-    = PBegin PDecl PSntnc
-    | PDecl PDecl
-    | PSntnc PSntnc
-    deriving Show
-
-data PSntnc
-    = PSkip
-    | PScln PSntnc PSntnc
-    | PExp0 PExp0
-      deriving Show
-
 data PExp0
-    = PAsgn Var PExp0
+    = PSkip
+    | PAsgn Var PExp0
+    | PScln PExp0 PExp0
     | PIfStmt BExp1 PExp0 PExp0
     | PWhile BExp1 PExp0
+    | PBegin PDecl PExp0
     | PExp PExp
-    | SntBrack PSntnc
     deriving Show
 
 data PDecl
     = PDSkip
-    | PSingDecl Var Datatype
+    | PDecl Var Datatype
     | PDScln PDecl PDecl
     deriving Show
 

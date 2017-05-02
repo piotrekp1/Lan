@@ -80,6 +80,38 @@ evalExp' (ELet varName exp1 exp2) = do
     a <- local (declareVar varName memLoc) (evalExp' exp2)
     modify (DMap.delete memLoc)
     return a
+-- skip
+evalExp' Skip = return $ Num 0
+-- overwriting a variable
+evalExp' (SAsgn varName exp) = do
+    env <- ask
+    case lookup varName env of
+        Nothing -> do
+            evalExp' Skip -- todo obsługa przypisania do niezadeklarowanej zmiennej
+        Just loc -> do
+            res <- evalExp' exp
+            modify (DMap.insert loc res)
+            return res
+-- if
+evalExp' (SIfStmt bexp stmt1 stmt2) = do
+    env <- ask
+    (BoolD res) <- evalBExp' bexp
+    evalExp' $ if res then stmt1 else stmt2
+-- while loop
+evalExp' loop@(SWhile bexp stmt) = evalExp' (SIfStmt bexp (SScln stmt loop) Skip)
+-- Semicolon
+evalExp' (SScln stmt1 stmt2) = do
+    evalExp' stmt1
+    evalExp' stmt2
+-- Begin block
+evalExp' (SBegin decl stmt) = do
+    store <- get
+    env <- ask
+    let (newStore, newEnv) = declareDecl decl store env
+    modify (const newStore)
+    local (const newEnv) $ evalExp' stmt
+
+
 
 evalExp :: Exp -> Datatype
 evalExp exp = fst $ runReader (runStateT (evalExp' exp) DMap.empty) []
@@ -113,8 +145,9 @@ evalBExp' (BCmp ord exp1 exp2) = do
 evalBExp :: BExp -> Bool
 evalBExp bexp = let (BoolD res) = fst $ runReader (runStateT (evalBExp' bexp) DMap.empty) [] in res
 {- STMT -}
+{-
 
-execStmt' :: Stmt -> StoreWithEnv Datatype
+execStmt' :: Exp -> StoreWithEnv Datatype
 execStmt' Skip = return $ Num 0
 -- overwriting a variable
 execStmt' (SAsgn varName exp) = do
@@ -124,7 +157,7 @@ execStmt' (SAsgn varName exp) = do
         Just loc -> do
             res <- evalExp' exp
             modify (DMap.insert loc res)
-            execStmt' Skip
+            return res
 -- if
 execStmt' (SIfStmt bexp stmt1 stmt2) = do
     env <- ask
@@ -144,16 +177,17 @@ execStmt' (SBegin decl stmt) = do
     modify (const newStore)
     local (const newEnv) $ execStmt' stmt
 
-execStmt :: Stmt -> (Datatype, Store)
-execStmt stmt = runReader (runStateT (execStmt' stmt) DMap.empty) []
+-}
+execStmt :: Exp -> (Datatype, Store)
+execStmt stmt = runReader (runStateT (evalExp' stmt) DMap.empty) []
 
-execStmtEnv :: Env -> Stmt -> (Datatype, Store)
-execStmtEnv env stmt = runReader (runStateT (execStmt' stmt) DMap.empty) env
+execStmtEnv :: Env -> Exp -> (Datatype, Store)
+execStmtEnv env stmt = runReader (runStateT (evalExp' stmt) DMap.empty) env
 
-stateStmt :: Stmt -> Store
+stateStmt :: Exp -> Store
 stateStmt = snd . execStmt
 
-evalStmt :: Stmt -> Datatype
+evalStmt :: Exp -> Datatype
 evalStmt = fst . execStmt
 
 showStore :: Store -> IO()
@@ -195,21 +229,16 @@ declareDecl (DSkip) store env = (store, env)
 
 stmt_main = do
     contents <- getContents
-    let abstractSyn = semPStmt $ getTree contents
+    let abstractSyn = semPBlock $ getTree contents
     putStrLn $ show abstractSyn
     let env = [("x", 0), ("y", 1) , ("z", 2)]
     showStore $ stateStmt abstractSyn
-    {-let undecVarExp = EVar "y"
-    let btest = (BCmp EQ (EVar "y") (EInt 1))
-    putStrLn $ show $ evalExp undecVarExp-}
-    --putStrLn $ show $ evalBExp btest
-
 {-
+    let test2 = ELet "x" (EInt 2) (EVar "x")
+    let test3 = SBegin  (DDecl "x" (Num 1)) (SAsgn "x" (EInt 6))
+    showStore $ stateStmt test3-}
 
-    let var = SBegin (DScln (DDecl "y" (Num 0)) DSkip) (SScln (SAsgn "y" (EInt 3)) Skip)
 
-    showState [("x", 0)] $ stateStmt var
--}
 
 
 

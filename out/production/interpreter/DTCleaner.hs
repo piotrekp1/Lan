@@ -21,28 +21,19 @@ semFact (Var varName) = EVar varName
 semFact (Brack pexp) = semPExp pexp
 
 
-semPBlock :: PBlock -> Exp
-semPBlock (PBegin pdecl psntnc) = SBegin (semPDecl pdecl) (semPSntnc psntnc)
-semPBlock (PDecl pdecl) = SBegin (semPDecl pdecl) Skip
-semPBlock (PSntnc psntnc) = semPSntnc psntnc
-
-semPSntnc :: PSntnc -> Exp
-semPSntnc (PSkip) = Skip
-semPSntnc (PScln psntnc1 psntnc2) = SScln (semPSntnc psntnc1) (semPSntnc psntnc2)
-semPSntnc (PExp0 pexp0) = semPStmt pexp0
-
-
 semPStmt :: PExp0 -> Exp
+semPStmt (PSkip) = Skip
 semPStmt (PAsgn var pexp) = SAsgn var $ semPStmt pexp
+semPStmt (PScln pstmt1 pstmt2) = SScln (semPStmt pstmt1) (semPStmt pstmt2)
 semPStmt (PIfStmt pbexp pstmt1 pstmt2) = SIfStmt (semPBexp1 pbexp) (semPStmt pstmt1) (semPStmt pstmt2)
 semPStmt (PWhile pexp pstmt) = SWhile (semPBexp1 pexp) (semPStmt pstmt)
+semPStmt (PBegin pdecl pstmt) = SBegin (semPDecl pdecl) (semPStmt pstmt)
 semPStmt (PExp pexp) = semPExp pexp
-semPStmt (SntBrack psntnc) = semPSntnc psntnc
 
 
 semPDecl :: PDecl -> Decl
 semPDecl (PDSkip) = DSkip
-semPDecl (PSingDecl var datatype) = DDecl var datatype
+semPDecl (PDecl var datatype) = DDecl var datatype
 semPDecl (PDScln pdecl1 pdecl2) = DScln (semPDecl pdecl1) (semPDecl pdecl2)
 
 

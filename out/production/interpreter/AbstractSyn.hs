@@ -1,6 +1,7 @@
 module AbstractSyn where
 import Parser
+import DTCleaner
 
 syn = do
     contents <- getContents
-    putStrLn $  getTree contents
+    putStrLn $ show $ semPStmt $ getTree contents

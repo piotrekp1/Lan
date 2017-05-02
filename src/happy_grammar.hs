@@ -36,19 +36,27 @@ import Datatypes
       '<'             { TokenLT }
       separator       { TokenSep }
       intType         { TokenIntType }
+      ':'             { TokenTwoDots}
       '::'            { TokenDecl }
       true            { TokenTrue }
       false           { TokenFalse }
 %%
 
-PStmt :                          { PSkip }
-      | var '=' PExp             { PAsgn $1 $3 }
-      | PStmt separator PStmt    { PScln $1 $3 }
-      | if BExp1 then '{' PStmt '}' else '{' PStmt '}' { PIfStmt $2 $5 $9 }
-      | while BExp1 '{' PStmt '}' { PWhile $2 $4 }
-      | PDecl PStmt              { PBegin $1 $2 }
+PBlock : PDecl PSntnc              { PBegin $1 $2 }
+      | PDecl                      { PDecl $1 }
+      | PSntnc                     { PSntnc $1 }
 
-PDecl : let var '::' intType     { PDecl $2 (Num 0)}
+PSntnc :                           { PSkip }
+      | PSntnc separator PSntnc    { PScln $1 $3 }
+      | PExp0                      { PExp0 $1 }
+
+PExp0 : var '=' PExp0             { PAsgn $1 $3 }
+      | if BExp1 then PExp0 else PExp0 { PIfStmt $2 $4 $6 }
+      | while BExp1 ':' PExp0 { PWhile $2 $4 }
+      | PExp                      { PExp $1 }
+      | '{' PSntnc '}'            { SntBrack $2 }
+
+PDecl : let var '::' intType     { PSingDecl $2 (Num 0)}
       | PDecl separator PDecl    { PDScln $1 $3 }
       | PDecl separator          { PDScln $1 PDSkip }
 
@@ -127,6 +135,7 @@ data Token
       | TokenLT
       | TokenTrue
       | TokenFalse
+      | TokenTwoDots
  deriving Show
 
 lexer :: String -> [Token]
@@ -150,6 +159,7 @@ lexer ('}':cs) = TokenRBracket : lexer cs
 lexer ('<':cs) = TokenLT : lexer cs
 lexer ('>':cs) = TokenGT : lexer cs
 lexer (':':':':cs) = TokenDecl : lexer cs
+lexer (':':cs) = TokenTwoDots : lexer cs
 
 numBool :: Int -> Bool
 numBool 1 = True

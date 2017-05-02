@@ -10,6 +10,7 @@
        (,lan-keywords-regexp . font-lock-keyword-face)
        (,lan-types-regexp . font-lock-constant-face)
        (,lan-function-decl-regexp . font-lock-function-name-face)
+       (":" . font-lock-keyword-face)
       )
 )
 

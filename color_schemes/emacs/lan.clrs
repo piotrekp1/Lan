@@ -4,6 +4,7 @@
 (setq lan-keywords-regexp (regexp-opt lan-keywords 'words))
 (setq lan-types-regexp (regexp-opt lan-types 'words))
 (setq lan-function-decl-regexp "\\([^:; \\n]*\\) [ ]*::")
+(setq lan-comment-regexp "\\/\\/[^\\n]*")
 
 (setq lan-highlights
       `(
@@ -11,6 +12,7 @@
        (,lan-types-regexp . font-lock-constant-face)
        (,lan-function-decl-regexp . font-lock-function-name-face)
        (":" . font-lock-keyword-face)
+       (,lan-comment-regexp . font-lock-comment-face)
       )
 )
 

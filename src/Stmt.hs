@@ -5,7 +5,8 @@ import Control.Monad.State
 import qualified Data.Map as DMap
 import Datatypes
 import SemanticDatatypes
-import Parser
+import Gramma
+import Tokens
 import DTCleaner
 import Data.Ord
 
@@ -229,7 +230,7 @@ declareDecl (DSkip) store env = (store, env)
 
 stmt_main = do
     contents <- getContents
-    let abstractSyn = semPBlock $ getTree contents
+    let abstractSyn = semPBlock $ lanParse $ lanTokens contents
     putStrLn $ show abstractSyn
     let env = [("x", 0), ("y", 1) , ("z", 2)]
     showStore $ stateStmt abstractSyn

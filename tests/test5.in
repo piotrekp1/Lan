@@ -6,7 +6,7 @@ x = 5 + 7;
 if 6 - 5 > 0 then {
     y = 8;
     z = 3;
-    while z > 8 - 10 and y < 50 {
+    while z > 8 - 10 and y < 50 : {
         z = z - 1;
         y = y + x;
     }

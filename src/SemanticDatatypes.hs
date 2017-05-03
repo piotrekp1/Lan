@@ -16,10 +16,10 @@ data Function
     | ArgFun (Datatype -> Function)
 
 instance Show Function where
-  show (RawExp rawexp) = "rawexp"
+  show (RawExp rawexp) = show rawexp
   show (ArgFun argfun) = "argfun"
 
-type EnvFunction = (Env, Function)
+type EnvFunction = ((Env, [Var]), Function)
 
 
 data Type

@@ -42,6 +42,7 @@ import Tokens
       true            { TokenTrue }
       false           { TokenFalse }
       arrow           { TokenArrow }
+      ':='            { TokenDfn }
 %%
 
 
@@ -70,10 +71,15 @@ PFooArgs : PExp0                  { PSngArg $1 }
 PDecl : let var '::' PFooType   { PSingDecl $2 $4}
       | PDecl separator PDecl    { PDScln $1 $3 }
       | PDecl separator          { PDScln $1 PDSkip }
+      | PFooArgNames ':=' PExpFoo { PFooDef $1 $3 }
+
+PFooArgNames : var                 { PVarName $1 }
+      | var PFooArgNames           { PVarNames $1 $2}
 
 
-PFooType : type arrow PFooType   { PMltType $1 $3 }
+PFooType : PFooType arrow PFooType { PMltType $1 $3 }
       | type                     { PType  $1 }
+      | '(' PFooType ')'         { PTypeBrack $2 }
 
 BExp1 : BExp1 or BExp1           { Or $1 $3 }
       | BExp2                    { BExp2 $1 }
@@ -102,7 +108,7 @@ Term  : Term '*' Factor         { TOp OpMul $1 $3 }
 Factor
       : int                     { Int $1 }
       | var                     { Var $1 }
-      | '(' PExp ')'             { Brack $2 }
+      | '(' PExpFoo ')'         { Brack $2 }
 
 {
 {-

@@ -23,6 +23,7 @@ tokens :-
    or                         { \s -> TokenOr }
    $alpha [$alpha $digit \_ \']* { \s -> TokenVar s }
    $digit+                    { \s -> TokenInt (read s)}
+   \:\=                        { \s -> TokenDfn }
    \-\>                        { \s -> TokenArrow }
    \=\=                         { \s -> TokenCmp }
    \=                          { \s -> TokenEq }
@@ -73,6 +74,7 @@ data Token
       | TokenFalse
       | TokenTwoDots
       | TokenArrow
+      | TokenDfn
       deriving Show
 
 lanTokens = alexScanTokens

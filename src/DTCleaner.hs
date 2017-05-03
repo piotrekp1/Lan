@@ -28,7 +28,7 @@ semTerm (Factor factor) = semFact factor
 semFact :: Factor -> Exp
 semFact (Int a) = EInt a
 semFact (Var varName) = EVar varName
-semFact (Brack pexp) = semPExp pexp
+semFact (Brack pexpfoo) = semPExpFoo pexpfoo
 
 
 semPBlock :: PBlock -> Exp
@@ -56,10 +56,14 @@ semPDecl (PDSkip) = DSkip
 --semPDecl (PSingDecl var typename) = DDecl var $ standardValue . getType $ typename
 semPDecl (PSingDecl var typename) = FooDcl var $ semPFooType typename
 semPDecl (PDScln pdecl1 pdecl2) = DScln (semPDecl pdecl1) (semPDecl pdecl2)
+semPDecl (PFooDef pfooArgNames pexpFoo) = FooDfn fooName args exp where
+            fooName:args = semArgNames pfooArgNames
+            exp = semPExpFoo pexpFoo
 
 semPFooType :: PFooType -> Type
 semPFooType (PType type_str) = getType type_str
-semPFooType (PMltType type_str pfootype) = FooT (getType type_str) (semPFooType pfootype)
+semPFooType (PMltType pfootype1 pfootype2) = FooT (semPFooType pfootype1) (semPFooType pfootype2)
+semPFooType (PTypeBrack pfootype) = semPFooType pfootype
 
 semPBexp1 :: BExp1 -> BExp
 semPBexp1 (Or bexp1_1 bexp1_2) = BEOp OpOr (semPBexp1 bexp1_1) (semPBexp1 bexp1_2)
@@ -81,4 +85,9 @@ translatePFooArgs (PMltArgs pexp0 pfooargs) = (semPExp0 pexp0):(translatePFooArg
 semPExpFoo :: PExpFoo -> Exp
 semPExpFoo (PFooCall var pfooargs) = FooCall var (translatePFooArgs pfooargs)
 semPExpFoo (PExp0 pexp0) = semPExp0 pexp0
+
+semArgNames :: PFooArgNames -> [Var]
+semArgNames (PVarName var) = [var]
+semArgNames (PVarNames var pfooargnames) = var:(semArgNames pfooargnames)
+
 

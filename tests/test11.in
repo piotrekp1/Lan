@@ -1,0 +1,14 @@
+let silia :: Int -> Int;
+let silia_2 :: Int -> Int;
+let t :: Int;
+let t1 :: Int; 
+let t2 :: Int;
+let eval :: (Int -> Int) -> Int;
+silia x := if x == 1 then 1 else x * (silia x - 1);
+silia_2 x := (silia x) / 2;
+eval foo := foo 3;
+{
+    t = silia 3;
+    t1 = silia_2 3;
+    t2 = eval silia_2;
+}

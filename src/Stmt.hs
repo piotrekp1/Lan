@@ -3,6 +3,7 @@ module Stmt where
 import Control.Monad.Reader
 import Control.Monad.State
 import qualified Data.Map.Strict as DMap
+import Data.Maybe
 import Datatypes
 import SemanticDatatypes
 import Gramma
@@ -35,6 +36,13 @@ nextLocHelper x mapObj = case DMap.lookup x mapObj of
     Nothing -> x
     Just k -> nextLocHelper (x + 1) mapObj
 
+overwriteMem :: Loc -> (Type, Maybe Datatype) -> Store -> Store
+overwriteMem = DMap.insert
+
+multOverwriteMem :: [(Loc, (Type, Maybe Datatype))] -> Store -> Store
+multOverwriteMem [] store = store
+multOverwriteMem ((loc, newVal):rest) store = overwriteMem loc newVal newStore where
+    newStore = multOverwriteMem rest store
 
 getIntOp :: Op -> Int -> Int -> Int
 getIntOp OpAdd = (+)
@@ -56,10 +64,18 @@ getOp op data1 data2 = case data1 of -- todo obsluga nieintow
 evalFun' :: Function -> [Datatype]  -> StoreWithEnv Datatype
 evalFun' (RawExp exp) args = evalExp' exp
 evalFun' (ArgFun argfoo) (arg:rest) = evalFun' (argfoo arg) rest
+
+
+evalEnvFun' :: EnvFunction -> Type -> [Datatype] -> StoreWithEnv Datatype
+evalEnvFun' ((env, varNames) , function) footype args = do
+    prevStore <- get
+    let (newEnv, newStore) = declareVars footype varNames env prevStore
+    let locs = map ( \k -> fromJust $ lookup k newEnv ) varNames
+    let locNewVals = zip locs (map (\t -> (IntT, Just t)) args)
+    modify (multOverwriteMem locNewVals) -- todo: cofanie nadpisywania zmiennych lokalnych?
+    (local (const newEnv) (evalFun' function args))
 -- todo: obsluga niepoprawnego calla
 
-evalEnvFun' :: EnvFunction -> [Datatype] -> StoreWithEnv Datatype
-evalEnvFun' (env, function) args = local (const env) (evalFun' function args)
 
 evalExp' :: Exp -> StoreWithEnv Datatype
 -- sama wartosc
@@ -76,8 +92,11 @@ evalExp' (EVar varName) = do
         Nothing -> return $ Num 0 -- todo: obsługa niezadeklarwanej zmiennej
         Just loc -> do
              state <- get
-             let (tp, (Just dt)) = state DMap.! loc
-             return dt -- todo: obsługa niezaalokowanej pamięci
+             let (tp, val) = state DMap.! loc
+             case val of
+                 Nothing -> error ("ewaluacja niezdefiniowanej zmiennej: " ++ varName)
+                 Just dt -> return dt -- todo: obsługa niezaalokowanej pamięci
+
 -- deklaracja zmiennej lokalnej
 {-evalExp' (ELet varName exp1 exp2) = do
     result1 <- evalExp' exp1 -- todo: obsługa niezgodności typów
@@ -133,7 +152,7 @@ evalExp' (FooCall fooname fooargNames) = do
             let (tp, mb_data_envfunction) = store DMap.! loc --todo: obsługa braku w pamięci
             let (Just (Foo envfunction)) = mb_data_envfunction
             args <- sequence (map evalExp' fooargNames)
-            evalEnvFun' envfunction args
+            evalEnvFun' envfunction tp args
 
 
 
@@ -225,7 +244,7 @@ declareDecl' (FooDcl varName tp) = do
     (env, store) <- get
     let newStore = DMap.insert (nextLoc store) (tp, Nothing) store
     let newEnv = declareVar varName (nextLoc store) env
-    modify (\(env, store) -> (newEnv, newStore))
+    modify (const (newEnv, newStore))
 -- function definition
 declareDecl' (FooDfn fooname vars expr) = do
     (env, store) <- get
@@ -235,29 +254,24 @@ declareDecl' (FooDfn fooname vars expr) = do
             case DMap.lookup loc store of
                  Nothing -> return () -- todo obsługa błędu jw.
                  Just (tp, dt) -> do
-                     let dcls = map (\(var, varType) -> declareDecl' (FooDcl var varType)) (zip vars (footypes tp))
-                     sequence_ dcls
+                     {-let dcls = map (\(var, varType) -> declareDecl' (FooDcl var varType)) (zip vars (footypes tp))
+                     sequence_ dcls-}
+                     (env, store) <- get
+                     let funEnv = Foo ((env, vars), RawExp expr)
+                     modify (\(env, store) -> (env, DMap.insert loc (tp, Just funEnv) store))
 
 declareDecl :: Decl -> Env -> Store -> (Env, Store)-- todo zamienić na transformaty monad?
 declareDecl decl env store = execState (declareDecl' decl) (env, store)
--- named declaration
-{-declareDecl (DDecl varName value) store env = -- todo obsługa podwójnych deklaracji
-    (newStore, newEnv) where
-        newEnv = declareVar varName (nextLoc store) env
-        newStore = DMap.insert (nextLoc store) value store-}{-
--- semicolon in decl
-declareDecl (DScln decl1 decl2) store env =
-    let (store1, env1) = declareDecl decl1 store env in
-    declareDecl decl2 store1 env1
--- skip
-declareDecl (DSkip) store env = (store, env)
--- fun declaration
-declareDecl (FooDcl varName tp) store env =
-    (newStore, newEnv) where
-        newEnv = declareVar varName (nextLoc store) env
-        newStore = DMap.insert (nextLoc store) (tp, Nothing) store
--- fun definition
---declareDecl (FooDfn fooname vars expr) store env =-}
+
+
+declareVars' :: Type -> [Var] -> State (Env, Store) ()
+declareVars' tp vars = do
+    let dcls = map (\(var, varType) -> declareDecl' (FooDcl var varType)) (zip vars (footypes tp))
+    sequence_ dcls
+
+declareVars :: Type -> [Var] -> Env -> Store -> (Env, Store)
+declareVars tp vars env store = execState (declareVars' tp vars) (env, store)
+
 
 stmt_main = do
     contents <- getContents

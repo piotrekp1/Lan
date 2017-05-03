@@ -1,0 +1,6 @@
+let x :: Int;
+let y :: Int;
+x k l = 5;
+x = 5;
+y = 7;
+x = x + y;

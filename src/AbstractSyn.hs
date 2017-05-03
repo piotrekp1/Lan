@@ -1,7 +1,11 @@
 module AbstractSyn where
-import Parser
+import Datatypes
+import SemanticDatatypes
+import Gramma
+import Tokens
 import DTCleaner
 
 syn = do
     contents <- getContents
-    putStrLn $ show $ semPStmt $ getTree contents
+    let abstractSyn = semPBlock $ lanParse $ lanTokens contents
+    putStrLn $ show $ abstractSyn

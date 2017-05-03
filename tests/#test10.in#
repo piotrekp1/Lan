@@ -1,0 +1,3 @@
+let x :: Int;
+let y :: Int;
+x k l = 5;

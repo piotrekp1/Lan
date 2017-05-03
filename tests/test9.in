@@ -1,0 +1,12 @@
+let x :: Int;
+let y :: Int;
+x = 5
+x = 8
+y = 7
+x = x + y
+if x > 6 then {
+    x = 1
+    x = 2
+} else {}
+
+

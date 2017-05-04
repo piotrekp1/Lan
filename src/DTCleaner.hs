@@ -63,7 +63,7 @@ semPDecl (PFooDef pfooArgNames pexpFoo) = FooDfn fooName args exp where
 semPFooType :: PFooType -> Type
 semPFooType (PType type_str) = getType type_str
 semPFooType (PMltType pfootype1 pfootype2) = FooT (semPFooType pfootype1) (semPFooType pfootype2)
-semPFooType (PTypeBrack pfootype) = semPFooType pfootype
+semPFooType (PTypeBrack pfootype) = FooBr $ semPFooType pfootype
 
 semPBexp1 :: BExp1 -> BExp
 semPBexp1 (Or bexp1_1 bexp1_2) = BEOp OpOr (semPBexp1 bexp1_1) (semPBexp1 bexp1_2)

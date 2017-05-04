@@ -1,0 +1,15 @@
+let sum :: Int -> Int -> Int;
+let plus5 :: Int -> Int;
+let plus5_2 :: Int -> Int;
+let wynik :: Int;
+let wynik2 :: Int;
+let heh :: (Int -> Int) -> Int;
+heh foo := foo 2;
+sum x y := x + y;
+plus5 := sum 5;
+{
+   plus5_2 = sum 5;
+    wynik = plus5_2 4;
+    wynik2 = plus5 4;
+    wynik2 = heh (sum 5);
+}

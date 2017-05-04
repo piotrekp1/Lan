@@ -10,18 +10,13 @@ import Gramma
 import Tokens
 import DTCleaner
 import Data.Ord
-{-
-
-datatypeType :: Datatype -> Type
-datatypeType (Num a) = IntT
-dataTypeType (BoolD b) = BoolT
--}
 
 
-declareVar :: Var -> Loc -> Env -> Env
-declareVar var loc env = case lookup var env of
+declareEnvVar :: Var -> Loc -> Env -> Env
+declareEnvVar var loc env = case lookup var env of
     Nothing -> env ++ [(var, loc)]
     Just val -> overwriteVar var loc env
+
 
 overwriteVar :: Var -> Loc -> Env -> Env
 overwriteVar var loc env = do
@@ -61,21 +56,29 @@ getOp op data1 data2 = case data1 of -- todo obsluga nieintow
         (BoolD bool1) -> case data2 of
                     (BoolD bool2) -> BoolD $ getBoolOp op bool1 bool2
 
-evalFun' :: Function -> [Datatype]  -> StoreWithEnv Datatype
-evalFun' (RawExp exp) args = evalExp' exp
-evalFun' (ArgFun argfoo) (arg:rest) = evalFun' (argfoo arg) rest
+-- assumes that tp doesnt consist FooT
+evalFun' :: Function -> [Type] -> [Datatype]  -> StoreWithEnv Datatype
+-- entire specification
+evalFun' (RawExp exp) tp args = evalExp' exp
+-- partial specification
+evalFun' foo@(ArgFun var fooin) (argtp:resttp) [] = do
+    env <- ask
+    return $ Foo (env, foo)
+-- too many arguments
+evalFun' (ArgFun var foo)  [] (arg:rest) = error ("too many parameters")
+-- many arguments
+evalFun' (ArgFun var foo) (argtp:resttp) (arg:rest) = do
+    env <- ask
+    store <- get
+    let (newEnv, newStore) = declareDecl (FooDcl var argtp) env store
+    let loc = fromJust $ lookup var newEnv
+    modify (overwriteMem loc (argtp, Just arg))
+    local (const newEnv) (evalFun' foo resttp rest)
 
 
 evalEnvFun' :: EnvFunction -> Type -> [Datatype] -> StoreWithEnv Datatype
-evalEnvFun' ((env, varNames) , function) footype args = do
-    prevStore <- get
-    let (newEnv, newStore) = declareVars footype varNames env prevStore
-    let locs = map ( \k -> fromJust $ lookup k newEnv ) varNames
-    let locNewVals = zip locs (map (\t -> (IntT, Just t)) args)
-    modify (multOverwriteMem locNewVals) -- todo: cofanie nadpisywania zmiennych lokalnych?
-    (local (const newEnv) (evalFun' function args))
--- todo: obsluga niepoprawnego calla
-
+evalEnvFun' (env, function) tp args = local (const env) (evalFun' function tps args)
+    where tps = footypes tp
 
 evalExp' :: Exp -> StoreWithEnv Datatype
 -- sama wartosc
@@ -91,12 +94,14 @@ evalExp' (EVar varName) = do
     case lookup varName env of
         Nothing -> return $ Num 0 -- todo: obsługa niezadeklarwanej zmiennej
         Just loc -> do
-             state <- get
-             let (tp, val) = state DMap.! loc
+             store <- get
+             let (tp, val) = store DMap.! loc
              case val of
                  Nothing -> error ("ewaluacja niezdefiniowanej zmiennej: " ++ varName)
-                 Just dt -> return dt -- todo: obsługa niezaalokowanej pamięci
-
+                 Just dt -> do
+                     case dt of
+                         Foo envfunction -> evalEnvFun' envfunction tp []  -- todo: obsługa niezaalokowanej pamięci, refactor tylu casów
+                         otherwise -> return dt
 -- deklaracja zmiennej lokalnej
 {-evalExp' (ELet varName exp1 exp2) = do
     result1 <- evalExp' exp1 -- todo: obsługa niezgodności typów
@@ -230,7 +235,12 @@ showState ((varName, varLoc):envrest) store = do
 footypes :: Type -> [Type] -- array consisting of only basic types
 footypes (IntT) = [IntT]
 footypes (BoolT) = [BoolT]
+footypes (FooBr tp) = [tp]
 footypes (FooT type1 type2) = (footypes type1) ++ (footypes type2)
+
+fooFromExpVars :: [Var] -> Exp -> Function
+fooFromExpVars [] exp = RawExp exp
+fooFromExpVars (x:xs) exp =  (ArgFun x) (fooFromExpVars xs exp)
 
 declareDecl' :: Decl -> State (Env, Store) ()
 -- semicolon in decl
@@ -243,7 +253,7 @@ declareDecl' (DSkip)  = return ()
 declareDecl' (FooDcl varName tp) = do
     (env, store) <- get
     let newStore = DMap.insert (nextLoc store) (tp, Nothing) store
-    let newEnv = declareVar varName (nextLoc store) env
+    let newEnv = declareEnvVar varName (nextLoc store) env
     modify (const (newEnv, newStore))
 -- function definition
 declareDecl' (FooDfn fooname vars expr) = do
@@ -254,13 +264,11 @@ declareDecl' (FooDfn fooname vars expr) = do
             case DMap.lookup loc store of
                  Nothing -> return () -- todo obsługa błędu jw.
                  Just (tp, dt) -> do
-                     {-let dcls = map (\(var, varType) -> declareDecl' (FooDcl var varType)) (zip vars (footypes tp))
-                     sequence_ dcls-}
                      (env, store) <- get
-                     let funEnv = Foo ((env, vars), RawExp expr)
+                     let funEnv = Foo (env, fooFromExpVars vars expr)
                      modify (\(env, store) -> (env, DMap.insert loc (tp, Just funEnv) store))
 
-declareDecl :: Decl -> Env -> Store -> (Env, Store)-- todo zamienić na transformaty monad?
+declareDecl :: Decl -> Env -> Store -> (Env, Store)
 declareDecl decl env store = execState (declareDecl' decl) (env, store)
 
 
@@ -272,6 +280,8 @@ declareVars' tp vars = do
 declareVars :: Type -> [Var] -> Env -> Store -> (Env, Store)
 declareVars tp vars env store = execState (declareVars' tp vars) (env, store)
 
+declareVar :: Type -> Var -> Env -> Store -> (Env, Store) -- todo: bez overheadu w postaci tablicy
+declareVar tp var = declareVars tp [var]
 
 stmt_main = do
     contents <- getContents

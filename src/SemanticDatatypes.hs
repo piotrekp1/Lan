@@ -13,18 +13,19 @@ type StoreWithEnv = StateT Store (Reader Env)
 
 data Function
     = RawExp Exp
-    | ArgFun (Datatype -> Function)
+    | ArgFun Var Function
 
 instance Show Function where
-  show (RawExp rawexp) = show rawexp
-  show (ArgFun argfun) = "argfun"
+  show (RawExp rawexp) = "rawexp: " ++ show rawexp
+  show (ArgFun var foo) = show var ++ " -> " ++ show foo
 
-type EnvFunction = ((Env, [Var]), Function)
+type EnvFunction = (Env, Function)
 
 
 data Type
     = IntT
     | BoolT
+    | FooBr Type
     | FooT Type Type
     deriving Show
 

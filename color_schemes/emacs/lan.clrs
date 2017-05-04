@@ -3,8 +3,8 @@
 
 (setq lan-keywords-regexp (regexp-opt lan-keywords 'words))
 (setq lan-types-regexp (regexp-opt lan-types 'words))
-(setq lan-function-decl-regexp "\\([^:; \\n]*\\) [ ]*::")
-(setq lan-comment-regexp "\\/\\/[^\\n]*")
+(setq lan-function-decl-regexp "\\([^:; ]*\\) [ ]*::")
+(setq lan-comment-regexp "\\/\\/.*")
 
 (setq lan-highlights
       `(

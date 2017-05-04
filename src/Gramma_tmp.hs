@@ -47,7 +47,7 @@ import Tokens
 
 
 
-PBlock : PDecl PSntnc              { PBegin $1 $2 }
+PBlock : PDecl  PSntnc             { PBegin $1 $2 }
       | PDecl                      { PDecl $1 }
       | PSntnc                     { PSntnc $1 }
 
@@ -71,7 +71,8 @@ PFooArgs : PExp0                  { PSngArg $1 }
 PDecl : let var '::' PFooType   { PSingDecl $2 $4}
       | PDecl separator PDecl    { PDScln $1 $3 }
       | PDecl separator          { PDScln $1 PDSkip }
-      | PFooArgNames ':=' PExpFoo { PFooDef $1 $3 }
+      | PFooArgNames ':=' PExpFoo { PFooDef $1 $3 } -- todo: powoduje kolizję gramatyki
+
 
 PFooArgNames : var                 { PVarName $1 }
       | var PFooArgNames           { PVarNames $1 $2}

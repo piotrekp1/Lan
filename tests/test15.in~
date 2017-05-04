@@ -1,0 +1,8 @@
+let funkcja :: Int -> Int;
+funkcja z = 2 * z;
+let x :: Int;
+{
+    x = funkcja 5;
+    x = funkcja x;
+
+}

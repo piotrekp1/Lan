@@ -9,6 +9,7 @@ plus2 := suma2 2;
   //  temp = bind plus2;
     suma2 = suma3 5;
     t = plus2 1 2;
+    t = z;
 
 }
 

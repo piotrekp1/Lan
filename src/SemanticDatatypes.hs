@@ -7,9 +7,10 @@ import Control.Monad.State
 type Loc = Int
 
 type Env = [(Var, Loc)]
-type Store = DMap.Map Loc (Type, Maybe Datatype)
+type Store = DMap.Map Loc (Type, Datatype)
 
-type StoreWithEnv = StateT Store (Reader Env)
+type Exception = String
+type StoreWithEnv = StateT Store (ReaderT Env (Either Exception))
 
 data Function
     = RawExp Exp
@@ -27,12 +28,19 @@ data Type
     | BoolT
     | FooBr Type
     | FooT Type Type
-    deriving Show
+    deriving Eq
+
+instance Show Type where
+    show (IntT) = "Int"
+    show (BoolT) = "Bool"
+    show (FooBr tp) = "(" ++ show tp ++ ")"
+    show (FooT tp1 tp2) = show tp1 ++ " -> " ++ show tp2
 
 data Datatype
     = Num Int
     | BoolD Bool
     | Foo EnvFunction
+    | Undefined
     deriving (Show)
 
 

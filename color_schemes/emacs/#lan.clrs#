@@ -1,0 +1,31 @@
+(setq lan-keywords '("while" "let" "if" "then" "else" "and" "or" "bind") )
+(setq lan-types '("Int"))
+
+(setq lan-keywords-regexp (regexp-opt lan-keywords 'words))
+(setq lan-types-regexp (regexp-opt lan-types 'words))
+(setq lan-function-decl-regexp "\\([^:; ]*\\) [ ]*::")
+(setq lan-comment-regexp "\\/\\/.*")
+
+(setq lan-highlights
+      `(
+       (,lan-keywords-regexp . font-lock-keyword-face)
+       (,lan-types-regexp . font-lock-constant-face)
+       (,lan-function-decl-regexp . font-lock-function-name-face)
+       (":" . font-lock-keyword-face)
+       (,lan-comment-regexp . font-lock-comment-face)
+      )
+)
+
+(define-derived-mode lan-mode fundamental-mode "lan"
+  "major mode for editing mymath language code."
+  (setq font-lock-defaults '(lan-highlights)))
+
+
+(setq lan-keywords nil)
+(setq lan-types nil)
+
+(setq lan-keywords-regexp nil)
+(setq lan-types nil)
+(setq lan-function-decl-regexp nil)
+
+(provide 'lan-mode)

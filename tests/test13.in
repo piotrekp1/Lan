@@ -1,0 +1,14 @@
+let suma3 :: Int -> Int -> Int -> Int;
+let suma2 :: Int -> Int -> Int;
+let t :: Int;
+let plus2 :: Int -> Int;
+suma3 a b c := a + b + c;
+suma2 := suma3 0;
+plus2 := suma2 2;
+{
+  //  temp = bind plus2;
+    suma2 = suma3 5;
+    t = plus2 1 2;
+
+}
+

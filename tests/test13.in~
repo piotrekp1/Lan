@@ -1,0 +1,11 @@
+suma3 :: Int -> Int -> Int -> Int;
+suma2 :: Int -> Int -> Int;
+t :: Int;
+suma3 a b c := a + b + c;
+suma2 := suma3 0;
+plus2 := suma2 2;
+{
+    t = plus2 3;
+
+}
+

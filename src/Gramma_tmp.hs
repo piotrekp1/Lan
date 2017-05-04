@@ -36,31 +36,54 @@ import Tokens
       '>'             { TokenGT }
       '<'             { TokenLT }
       separator       { TokenSep }
-      intType         { TokenIntType }
+      type            { TokenType $$ }
       ':'             { TokenTwoDots}
       '::'            { TokenDecl }
       true            { TokenTrue }
       false           { TokenFalse }
+      arrow           { TokenArrow }
+      ':='            { TokenDfn }
+      bind            { TokenBind }
 %%
 
 
-PBlock : PDecl PSntnc              { PBegin $1 $2 }
+
+PBlock : PDecl  PSntnc             { PBegin $1 $2 }
       | PDecl                      { PDecl $1 }
       | PSntnc                     { PSntnc $1 }
 
 PSntnc :                           { PSkip }
       | PSntnc separator PSntnc    { PScln $1 $3 }
-      | PExp0                      { PExp0 $1 }
+      | PExpFoo                    { PExpFoo $1 }
 
-PExp0 : var '=' PExp0             { PAsgn $1 $3 }
-      | if BExp1 then PExp0 else PExp0 { PIfStmt $2 $4 $6 }
-      | while BExp1 ':' PExp0 { PWhile $2 $4 }
+PExpFoo : var PFooArgs             { PFooCall $1 $2 }
+      | PExp0                      { PExp0 $1 }
+      | bind var PFooArgs          { PFooBind $2 $3 }
+      | bind var                   { PFooBind $2 PEmptArgs }
+
+PExp0 : var '=' PExpFoo             { PAsgn $1 $3 }
+      | if BExp1 then PExpFoo else PExpFoo { PIfStmt $2 $4 $6 }
+      | while BExp1 ':' PExpFoo { PWhile $2 $4 }
       | PExp                      { PExp $1 }
       | '{' PSntnc '}'            { SntBrack $2 }
+      | '(' PExpFoo ')'           { PFooBrack $2 }
 
-PDecl : let var '::' intType     { PSingDecl $2 (Num 0)}
+PFooArgs : PExp0                  { PSngArg $1 }
+      | PExp0 PFooArgs            { PMltArgs $1 $2 }
+
+PDecl : let var '::' PFooType   { PSingDecl $2 $4}
       | PDecl separator PDecl    { PDScln $1 $3 }
       | PDecl separator          { PDScln $1 PDSkip }
+      | PFooArgNames ':=' PExpFoo { PFooDef $1 $3 } -- todo: powoduje kolizję gramatyki
+
+
+PFooArgNames : var                 { PVarName $1 }
+      | var PFooArgNames           { PVarNames $1 $2}
+
+
+PFooType : PFooType arrow PFooType { PMltType $1 $3 }
+      | type                     { PType  $1 }
+      | '(' PFooType ')'         { PTypeBrack $2 }
 
 BExp1 : BExp1 or BExp1           { Or $1 $3 }
       | BExp2                    { BExp2 $1 }
@@ -89,9 +112,14 @@ Term  : Term '*' Factor         { TOp OpMul $1 $3 }
 Factor
       : int                     { Int $1 }
       | var                     { Var $1 }
-      | '(' PExp ')'             { Brack $2 }
+      | '(' PExpFoo ')'         { Brack $2 }
 
 {
+{-
+
+showTokenType :: Token -> String
+showTokenType (TokenType str) = map (filter (/='"')) str
+-}
 
 parseError :: [Token] -> a
 parseError list = error ("Parse error" ++ show list)

@@ -3,6 +3,16 @@ import ParseDatatypes
 import SemanticDatatypes
 import Datatypes
 
+standardValue :: Type -> Datatype
+standardValue (IntT) = Num 0
+standardValue (BoolT) = BoolD False
+-- todo: StandardValue dla funkcji
+
+getType :: String -> Type
+getType "Int" = IntT
+getType "Bool" = BoolT
+getType other = error ("getType: " ++ other ++ show(other == "\"Int\""))
+
 semPExp :: PExp -> Exp
 semPExp (Let str pexp1 pexp2) = ELet str (semPExp pexp1) (semPExp pexp2)
 semPExp (Exp1 pexp) = semExp1 pexp
@@ -18,7 +28,7 @@ semTerm (Factor factor) = semFact factor
 semFact :: Factor -> Exp
 semFact (Int a) = EInt a
 semFact (Var varName) = EVar varName
-semFact (Brack pexp) = semPExp pexp
+semFact (Brack pexpfoo) = semPExpFoo pexpfoo
 
 
 semPBlock :: PBlock -> Exp
@@ -29,22 +39,31 @@ semPBlock (PSntnc psntnc) = semPSntnc psntnc
 semPSntnc :: PSntnc -> Exp
 semPSntnc (PSkip) = Skip
 semPSntnc (PScln psntnc1 psntnc2) = SScln (semPSntnc psntnc1) (semPSntnc psntnc2)
-semPSntnc (PExp0 pexp0) = semPStmt pexp0
+semPSntnc (PExpFoo pexpfoo) = semPExpFoo pexpfoo
 
 
-semPStmt :: PExp0 -> Exp
-semPStmt (PAsgn var pexp) = SAsgn var $ semPStmt pexp
-semPStmt (PIfStmt pbexp pstmt1 pstmt2) = SIfStmt (semPBexp1 pbexp) (semPStmt pstmt1) (semPStmt pstmt2)
-semPStmt (PWhile pexp pstmt) = SWhile (semPBexp1 pexp) (semPStmt pstmt)
-semPStmt (PExp pexp) = semPExp pexp
-semPStmt (SntBrack psntnc) = semPSntnc psntnc
+semPExp0 :: PExp0 -> Exp
+semPExp0 (PAsgn var pexpfoo) = SAsgn var $ semPExpFoo pexpfoo
+semPExp0 (PIfStmt pbexp pexpfoo1 pexpfoo2) = SIfStmt (semPBexp1 pbexp) (semPExpFoo pexpfoo1) (semPExpFoo pexpfoo2)
+semPExp0 (PWhile pexp pexpfoo) = SWhile (semPBexp1 pexp) (semPExpFoo pexpfoo)
+semPExp0 (PExp pexp) = semPExp pexp
+semPExp0 (SntBrack psntnc) = semPSntnc psntnc
+semPExp0 (PFooBrack pexpfoo) = semPExpFoo pexpfoo
 
 
 semPDecl :: PDecl -> Decl
 semPDecl (PDSkip) = DSkip
-semPDecl (PSingDecl var datatype) = DDecl var datatype
+--semPDecl (PSingDecl var typename) = DDecl var $ standardValue . getType $ typename
+semPDecl (PSingDecl var typename) = FooDcl var $ semPFooType typename
 semPDecl (PDScln pdecl1 pdecl2) = DScln (semPDecl pdecl1) (semPDecl pdecl2)
+semPDecl (PFooDef pfooArgNames pexpFoo) = FooDfn fooName args exp where
+            fooName:args = semArgNames pfooArgNames
+            exp = semPExpFoo pexpFoo
 
+semPFooType :: PFooType -> Type
+semPFooType (PType type_str) = getType type_str
+semPFooType (PMltType pfootype1 pfootype2) = FooT (semPFooType pfootype1) (semPFooType pfootype2)
+semPFooType (PTypeBrack pfootype) = FooBr $ semPFooType pfootype
 
 semPBexp1 :: BExp1 -> BExp
 semPBexp1 (Or bexp1_1 bexp1_2) = BEOp OpOr (semPBexp1 bexp1_1) (semPBexp1 bexp1_2)
@@ -58,4 +77,19 @@ semPBexp2 (PCmp pcmp) = semPCmp pcmp
 
 semPCmp :: PCmp -> BExp
 semPCmp (PCmpExp comp pexp1 pexp2) = BCmp comp (semPExp pexp1) (semPExp pexp2)
+
+translatePFooArgs :: PFooArgs -> [Exp]
+translatePFooArgs (PSngArg pexp0) = [semPExp0 pexp0]
+translatePFooArgs (PMltArgs pexp0 pfooargs) = (semPExp0 pexp0):(translatePFooArgs pfooargs)
+
+semPExpFoo :: PExpFoo -> Exp
+semPExpFoo (PFooCall var pfooargs) = FooCall var (translatePFooArgs pfooargs)
+semPExpFoo (PExp0 pexp0) = semPExp0 pexp0
+semPExpFoo (PFooBind var (PEmptArgs)) = FooBind var []
+semPExpFoo (PFooBind var pfooargs) = FooBind var (translatePFooArgs pfooargs)
+
+semArgNames :: PFooArgNames -> [Var]
+semArgNames (PVarName var) = [var]
+semArgNames (PVarNames var pfooargnames) = var:(semArgNames pfooargnames)
+
 

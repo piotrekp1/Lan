@@ -19,7 +19,7 @@ data Term
 data Factor
       = Int Int
       | Var String
-      | Brack PExp
+      | Brack PExpFoo
       deriving Show
 
 data PBlock
@@ -31,21 +31,46 @@ data PBlock
 data PSntnc
     = PSkip
     | PScln PSntnc PSntnc
-    | PExp0 PExp0
+    | PExpFoo PExpFoo
       deriving Show
 
+data PExpFoo
+    = PFooCall Var PFooArgs
+    | PExp0 PExp0
+    | PFooBind Var PFooArgs
+     deriving Show
+
 data PExp0
-    = PAsgn Var PExp0
-    | PIfStmt BExp1 PExp0 PExp0
-    | PWhile BExp1 PExp0
+    = PAsgn Var PExpFoo
+    | PIfStmt BExp1 PExpFoo PExpFoo
+    | PWhile BExp1 PExpFoo
     | PExp PExp
     | SntBrack PSntnc
+    | PFooBrack PExpFoo
+    deriving Show
+
+data PFooArgs
+    = PSngArg PExp0
+    | PMltArgs PExp0 PFooArgs
+    | PEmptArgs
     deriving Show
 
 data PDecl
     = PDSkip
-    | PSingDecl Var Datatype
+    | PSingDecl Var PFooType -- datatype Name
     | PDScln PDecl PDecl
+    | PFooDef PFooArgNames PExpFoo
+    deriving Show
+
+data PFooArgNames
+    = PVarName Var
+    | PVarNames Var PFooArgNames
+    deriving Show
+
+data PFooType
+    = PType String
+    | PMltType PFooType PFooType
+    | PTypeBrack PFooType
     deriving Show
 
 data BExp1

@@ -1,0 +1,8 @@
+let x :: Int -> Int -> Int;
+let z :: Int;
+let i :: Int;
+x k l := k + l;
+{
+    i = 0;
+    z = x 32 2;
+}

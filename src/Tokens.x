@@ -16,13 +16,17 @@ tokens :-
    else                       { \s -> TokenElse }
    let                        { \s -> TokenLet }
    in                         { \s -> TokenIn }
-   Int                        { \s -> TokenIntType }
+   bind                       { \s -> TokenBind }
+   Int                        { \s -> TokenType s }
    True                       { \s -> TokenTrue }
    False                      { \s -> TokenFalse }
+
    and                        { \s -> TokenAnd }
    or                         { \s -> TokenOr }
    $alpha [$alpha $digit \_ \']* { \s -> TokenVar s }
    $digit+                    { \s -> TokenInt (read s)}
+   \:\=                        { \s -> TokenDfn }
+   \-\>                        { \s -> TokenArrow }
    \=\=                         { \s -> TokenCmp }
    \=                          { \s -> TokenEq }
    \+                          { \s -> TokenPlus }
@@ -32,13 +36,13 @@ tokens :-
    \(                          { \s -> TokenOB }
    \)                          { \s -> TokenCB }
    \;                          { \s -> TokenSep }
-   \\                          { \s -> TokenSep }
    \{                          { \s -> TokenLBracket }
    \}                          { \s -> TokenRBracket }
    \<                          { \s -> TokenLT }
    \>                          { \s -> TokenGT }
    \:\:                          { \s -> TokenDecl }
    \:                          { \s -> TokenTwoDots }
+
 
 {
 data Token
@@ -61,7 +65,7 @@ data Token
       | TokenRBracket
       | TokenLBracket
       | TokenWhile
-      | TokenIntType
+      | TokenType String
       | TokenDecl
       | TokenAnd
       | TokenOr
@@ -71,6 +75,9 @@ data Token
       | TokenTrue
       | TokenFalse
       | TokenTwoDots
+      | TokenArrow
+      | TokenDfn
+      | TokenBind
       deriving Show
 
 lanTokens = alexScanTokens

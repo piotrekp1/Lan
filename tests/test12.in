@@ -1,0 +1,17 @@
+let sum :: Int -> Int -> Int;
+sum x y := x + y;
+let plus5_0 :: Int -> Int;
+let plus5_1 :: Int -> Int;
+let plus5_2 :: Int -> Int;
+
+let wynik :: Int;
+let wynik1 :: Int;
+let wynik2 :: Int;
+plus5_0 x := x + 5;
+plus5_1 := sum 5;
+{
+   wynik = bind plus5_1;
+   wynik1 = wynik;
+   wynik2 = wynik1;
+   plus5_2 = sum 5;
+}

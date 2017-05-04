@@ -43,6 +43,7 @@ import Tokens
       false           { TokenFalse }
       arrow           { TokenArrow }
       ':='            { TokenDfn }
+      bind            { TokenBind }
 %%
 
 
@@ -57,6 +58,8 @@ PSntnc :                           { PSkip }
 
 PExpFoo : var PFooArgs             { PFooCall $1 $2 }
       | PExp0                      { PExp0 $1 }
+      | bind var PFooArgs          { PFooBind $2 $3 }
+      | bind var                   { PFooBind $2 PEmptArgs }
 
 PExp0 : var '=' PExpFoo             { PAsgn $1 $3 }
       | if BExp1 then PExpFoo else PExpFoo { PIfStmt $2 $4 $6 }

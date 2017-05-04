@@ -48,6 +48,7 @@ data Exp =
     | SWhile BExp Exp
     | SBegin Decl Exp
     | FooCall Var [Exp]
+    | FooBind Var [Exp]
     deriving (Show)
 
 data BExp =

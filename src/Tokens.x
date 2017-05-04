@@ -16,9 +16,11 @@ tokens :-
    else                       { \s -> TokenElse }
    let                        { \s -> TokenLet }
    in                         { \s -> TokenIn }
+   bind                       { \s -> TokenBind }
    Int                        { \s -> TokenType s }
    True                       { \s -> TokenTrue }
    False                      { \s -> TokenFalse }
+
    and                        { \s -> TokenAnd }
    or                         { \s -> TokenOr }
    $alpha [$alpha $digit \_ \']* { \s -> TokenVar s }
@@ -75,6 +77,7 @@ data Token
       | TokenTwoDots
       | TokenArrow
       | TokenDfn
+      | TokenBind
       deriving Show
 
 lanTokens = alexScanTokens

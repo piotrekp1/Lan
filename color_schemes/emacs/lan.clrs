@@ -1,4 +1,4 @@
-(setq lan-keywords '("while" "let" "if" "then" "else" "and" "or") )
+(setq lan-keywords '("while" "let" "if" "then" "else" "and" "or" "bind") )
 (setq lan-types '("Int"))
 
 (setq lan-keywords-regexp (regexp-opt lan-keywords 'words))

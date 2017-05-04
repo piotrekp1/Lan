@@ -85,6 +85,8 @@ translatePFooArgs (PMltArgs pexp0 pfooargs) = (semPExp0 pexp0):(translatePFooArg
 semPExpFoo :: PExpFoo -> Exp
 semPExpFoo (PFooCall var pfooargs) = FooCall var (translatePFooArgs pfooargs)
 semPExpFoo (PExp0 pexp0) = semPExp0 pexp0
+semPExpFoo (PFooBind var (PEmptArgs)) = FooBind var []
+semPExpFoo (PFooBind var pfooargs) = FooBind var (translatePFooArgs pfooargs)
 
 semArgNames :: PFooArgNames -> [Var]
 semArgNames (PVarName var) = [var]

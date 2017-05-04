@@ -92,7 +92,7 @@ evalExp' (EOp op exp1 exp2) = do
 evalExp' (EVar varName) = do
     env <- ask
     case lookup varName env of
-        Nothing -> return $ Num 0 -- todo: obsługa niezadeklarwanej zmiennej
+        Nothing -> evalExp' Skip  -- todo: obsługa niezadeklarwanej zmiennej
         Just loc -> do
              store <- get
              let (tp, val) = store DMap.! loc
@@ -150,6 +150,27 @@ evalExp' (SBegin decl stmt) = do
 evalExp' (FooCall fooname fooargNames) = do
     env <- ask
     case lookup fooname env of
+       Nothing -> do
+           evalExp' Skip -- todo: obsługa przypisania do niezadeklarowanej zmiennej
+       Just loc -> do
+           store <- get --todo: obsługa kiedy to nie jest funkcja
+           let (tp, mb_data_envfunction) = store DMap.! loc --todo: obsługa braku w pamięci
+           let (Just (Foo envfunction@(env, foo))) = mb_data_envfunction
+           case foo of
+               (RawExp rawexp) -> do
+                   true_foo <- evalExp' rawexp
+                   case true_foo of
+                       (Foo envfunction2) -> do
+                           args <- sequence (map evalExp' fooargNames)
+                           evalEnvFun' envfunction2 tp args
+                       otherwise -> return true_foo
+               otherwise -> do
+                   args <- sequence (map evalExp' fooargNames)
+                   evalEnvFun' envfunction tp args
+-- Function bind
+evalExp' (FooBind fooname fooargNames) = do
+    env <- ask
+    case lookup fooname env of
         Nothing -> do
             evalExp' Skip -- todo: obsługa przypisania do niezadeklarowanej zmiennej
         Just loc -> do
@@ -158,8 +179,6 @@ evalExp' (FooCall fooname fooargNames) = do
             let (Just (Foo envfunction)) = mb_data_envfunction
             args <- sequence (map evalExp' fooargNames)
             evalEnvFun' envfunction tp args
-
-
 
 
 evalExp :: Exp -> Datatype

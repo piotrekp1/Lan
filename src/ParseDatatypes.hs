@@ -37,6 +37,7 @@ data PSntnc
 data PExpFoo
     = PFooCall Var PFooArgs
     | PExp0 PExp0
+    | PFooBind Var PFooArgs
      deriving Show
 
 data PExp0
@@ -51,6 +52,7 @@ data PExp0
 data PFooArgs
     = PSngArg PExp0
     | PMltArgs PExp0 PFooArgs
+    | PEmptArgs
     deriving Show
 
 data PDecl

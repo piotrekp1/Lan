@@ -23,15 +23,37 @@ getBoolOp :: Op -> Bool -> Bool -> Bool
 getBoolOp OpOr = (||)
 getBoolOp OpAnd = (&&)
 
-getOp :: Op -> Datatype -> Datatype -> Datatype
-getOp op data1 data2 = case data1 of -- todo obsluga nieintow
-        (Num int1) -> case data2 of
-                    (Num int2) -> Num $ getIntOp op int1 int2
-        (BoolD bool1) -> case data2 of
-                    (BoolD bool2) -> BoolD $ getBoolOp op bool1 bool2
+err :: String -> StoreWithEnv a
+err = lift . lift . Left
+
+-- doesn't do type checking
+evalInfix :: Op -> Mementry -> Mementry -> StoreWithEnv Mementry
+evalInfix (OpEQ)  ((IntT), (Num a)) ((IntT), (Num b)) = return (BoolT, BoolD $ a == b)
+evalInfix (OpEQ)  ((BoolT), (BoolD a)) ((BoolT), (BoolD b)) = return (BoolT, BoolD $ a == b)
+evalInfix (OpLT)  ((IntT), (Num a)) ((IntT), (Num b)) = return (BoolT, BoolD $ a < b)
+evalInfix (OpGT)  ((IntT), (Num a)) ((IntT), (Num b)) = return (BoolT, BoolD $ a > b)
+evalInfix (OpDiv) ((IntT), (Num a)) ((IntT), (Num 0)) = err "Tried to divide by 0"
+evalInfix op      ((IntT), (Num a)) ((IntT), (Num b)) = return (IntT, Num $ getIntOp op a b)
+evalInfix op ((BoolT), (BoolD a)) ((BoolT), (BoolD b)) = return (BoolT, BoolD $ getBoolOp op a b)
+
+evalInfixType :: Op -> Type -> Type -> StoreWithEnv Type
+evalInfixType (OpEQ) (IntT) (IntT) = return BoolT
+evalInfixType (OpEQ) (BoolT) (BoolT) = return BoolT
+evalInfixType (OpLT) (IntT) (IntT) = return BoolT
+evalInfixType (OpGT) (IntT) (IntT) = return BoolT
+evalInfixType (OpAdd) (IntT) (IntT) = return IntT
+evalInfixType (OpSub) (IntT) (IntT) = return IntT
+evalInfixType (OpMul) (IntT) (IntT) = return IntT
+evalInfixType (OpDiv) (IntT) (IntT) = return IntT
+evalInfixType (OpOr) (BoolT) (BoolT) = return BoolT
+evalInfixType (OpAnd) (BoolT) (BoolT) = return BoolT
+evalInfixType op tp1 tp2 = err $ ("Mismatched types in infix operation " ++ show op ++
+     ", arg1 type: " ++ show tp1 ++
+     ", arg2 type: " ++ show tp2) ++ ". "
 
 typeMismatch :: Type -> Type -> String
-typeMismatch expected got = "Expected: " ++ show expected ++ ", Got: " ++ show got
+typeMismatch expected got = "Expected: " ++ show expected ++ ", Got: " ++ show got ++ ". "
+
 
 
 --assumes there is no FooT in array
@@ -40,19 +62,18 @@ footypeFromArray [t] = t
 footypeFromArray (t:rest) = FooT t (footypeFromArray rest)
 
 -- assumes that tp doesnt consist FooT
-evalFun' :: Function -> [Type] -> [(Type, Datatype)]  -> StoreWithEnv (Type, Datatype)
+evalFun' :: Function -> [Type] -> [Mementry]  -> StoreWithEnv Mementry
 -- entire specification
 evalFun' (RawExp exp) tp args = evalExp' exp
 -- partial specification
 evalFun' foo@(ArgFun var fooin) tp@(argtp:resttp) [] = do
     env <- lift ask
     return $ (footypeFromArray tp, Foo (env, foo))
--- too many arguments
-evalFun' (ArgFun var foo)  [] (arg:rest) = fail ("too many parameters")
+-- too many arguments (should never be called because there is static control now)
+evalFun' (ArgFun var foo)  [] (arg:rest) = err $ "Call with too many parameters, function: " ++ var
 -- many arguments
 evalFun' (ArgFun var foo) (argtp_shouldbe:resttp) ((argtp, arg):rest) = do
     env <- lift ask
-    assertTrue (argtp_shouldbe == argtp) ("Wrong parameter type, " ++ typeMismatch argtp_shouldbe argtp)
     store <- get
     let (newEnv, newStore) = declareDecl (FooDcl var argtp) env store
     let loc = fromJust $ lookup var newEnv
@@ -60,69 +81,133 @@ evalFun' (ArgFun var foo) (argtp_shouldbe:resttp) ((argtp, arg):rest) = do
     local (const newEnv) (evalFun' foo resttp rest)
 
 
-evalEnvFun' :: EnvFunction -> Type -> [(Type, Datatype)] -> StoreWithEnv (Type,Datatype)
+evalEnvFun' :: EnvFunction -> Type -> [Mementry] -> StoreWithEnv Mementry
 evalEnvFun' (env, function) tp args = local (const env) (evalFun' function tps args)
     where tps = footypes tp
 
-withVar' :: Var -> (Loc -> StoreWithEnv (Type, Datatype)) -> StoreWithEnv (Type, Datatype)
+withVar' :: Var -> (Loc -> StoreWithEnv a) -> StoreWithEnv a
 withVar' varName ifThereIs = do
     env <- lift ask
-    let fail_message = "use of undeclaredVariable: " ++ varName
+    let err_message = "Use of undeclared variable: " ++ varName ++ ". "
     case lookup varName env of
-        Nothing -> fail fail_message
+        Nothing -> err err_message
         Just loc -> ifThereIs loc
 
-getValue :: Loc -> StoreWithEnv (Type, Datatype) -- todo: typechecking
+getValue :: Loc -> StoreWithEnv Mementry
+-- todo: typechecking
 getValue loc = do
     store <- get
-    let fail_message = "tried to get memory from not DECLARED variable but with set loc"
+    let err_message = "tried to get memory from not DECLARED variable but with set loc. "
     case DMap.lookup loc store of
-         Nothing -> fail fail_message
+         Nothing -> err err_message
          Just tp_dt -> return tp_dt
 
-getNonEmptyValue :: Loc -> StoreWithEnv (Type, Datatype)
+getTypeLoc :: Loc -> StoreWithEnv Type
+getTypeLoc loc = do
+    (tp, val) <- getValue loc
+    return tp
+
+getNonEmptyValue :: Loc -> StoreWithEnv Mementry
 getNonEmptyValue loc = do
     res@(tp, dt) <- getValue loc
-    let fail_message = "tried to get memory from not DEFINED variable"
+    let err_message = "tried to get memory from not DEFINED variable. "
     case dt of
-        Undefined -> fail fail_message
+        Undefined -> err err_message
         otherwise -> return res
 
-assertTrue :: Bool -> String -> StoreWithEnv (Type, Datatype)
-assertTrue predicate message = if not predicate then fail message else return (Ign, Undefined) -- todo upewnic się że to nie szkodzi
+assertTrue :: Bool -> String -> StoreWithEnv Type
+assertTrue predicate message = if not predicate then err message else return Ign -- todo upewnic się że to nie szkodzi
 
-evalExp' :: Exp -> StoreWithEnv (Type, Datatype)
+checkExp' :: Exp -> StoreWithEnv Type
 -- sama wartosc
-evalExp' (EInt b) = return $ (IntT, Num b)
+checkExp' (EVal (tp, dt)) = return tp
+-- zlozenie wyrazen
+checkExp' (EOp op exp1 exp2) = do
+    type1 <- checkExp' exp1
+    type2 <- checkExp' exp2
+    evalInfixType op type1 type2
+-- ewaluacja zmiennej
+checkExp' (EVar varName) = withVar' varName getTypeLoc
+-- skip
+checkExp' (Skip) = return Ign
+-- overwriting a variable
+checkExp' (SAsgn varName exp) = withVar' varName (\loc -> do
+    res_tp <- checkExp' exp
+    tp <- getTypeLoc loc -- checks if variable is allocated
+    assertTrue (res_tp == tp) ("Different types in assignment in " ++ varName ++ ". " ++ (typeMismatch tp res_tp))
+    return res_tp
+    )
+-- if
+checkExp' (SIfStmt bexp stmt1 stmt2) = do
+    env <- lift ask
+    cond_tp <- checkExp' bexp -- todo: kontrola typu
+    assertTrue (cond_tp == BoolT) ("Used non-boolean expression in if or while condition. ")
+    tp1 <- checkExp' stmt1
+    tp2 <- checkExp' stmt2
+    assertTrue (tp1 == tp2) ("Expressions in if have different types. ")
+    return tp1
+-- while loop
+checkExp' loop@(SWhile bexp stmt) = checkExp' stmt -- checkExp' (SScln stmt (SIfStmt bexp loop Skip)) -- do while syntax
+-- Semicolon
+checkExp' (SScln stmt1 stmt2) = do
+    tp1 <- checkExp' stmt1
+    tp2 <- checkExp' stmt2
+    return $ if tp2 == Ign then tp1 else tp2
+-- Begin block
+checkExp' (SBegin decl stmt) = do
+    store <- get
+    env <- lift ask
+    let (newEnv, newStore) = declareDecl decl env store
+    modify (const newStore)
+    local (const newEnv) $ checkExp' stmt
+-- Function call
+checkExp' (FooCall fooname args) = withVar' fooname (\l -> getTypeLoc l >>= checkFooCallType' fooname args)
+-- Function bind
+checkExp' (FooBind fooname args) = checkExp' (FooCall fooname args)
+
+
+checkFooCallType' :: String -> [Exp] -> Type -> StoreWithEnv Type
+checkFooCallType' fooname [] footype = return footype
+checkFooCallType' fooname (firstarg:rest) footype = do
+    case footype of
+        FooT from_tp to_tp -> do
+            firstarg_tp <- checkExp' firstarg
+            assertTrue (from_tp == firstarg_tp) $ "Wrong argument type in call of a function named: " ++ fooname ++ " - " ++ (typeMismatch from_tp firstarg_tp)
+            checkFooCallType' fooname rest to_tp
+        otherwise -> err $ "Too many parameters in a call, variable: " ++ fooname ++ " - but with parameters given. "
+
+
+evalExp' :: Exp -> StoreWithEnv Mementry
+-- sama wartosc
+evalExp' (EVal b) = return b
 -- zlozenie wyrazen
 evalExp' (EOp op exp1 exp2) = do
-    (tp1, retval1) <- evalExp' exp1    -- todo sprawdzenie typu, zrobienie generycznego getOp
-    (tp2, retval2) <- evalExp' exp2
-    return $ (IntT, getOp op retval1 retval2) -- todo: dedukcja typu
+    res1 <- evalExp' exp1
+    res2 <- evalExp' exp2
+    evalInfix op res1 res2
 -- ewaluacja zmiennej
 evalExp' (EVar varName) = withVar' varName (\loc -> do
     res@(tp, dt) <- getNonEmptyValue loc
     case dt of
-        Foo envfunction -> evalEnvFun' envfunction tp []  -- todo: obsługa niezaalokowanej pamięci, refactor tylu casów
+        Foo envfunction -> evalEnvFun' envfunction tp []  -- todo: obsługa niezaalokowanej pamięci
         otherwise -> return res
     )
 -- skip
-evalExp' Skip = return $ (Ign, Undefined) -- todo ignore element
+evalExp' Skip = return $ (Ign, Undefined)
 -- overwriting a variable
 evalExp' (SAsgn varName exp) = withVar' varName (\loc -> do
-    res@(res_tp, res_val) <- evalExp' exp   -- todo kontrola typu!
+    res@(res_tp, res_val) <- evalExp' exp
     (tp, val) <- getValue loc -- checks if variable is allocated
-    assertTrue (res_tp == tp) ("While assigning to " ++ varName ++ " - " ++ (typeMismatch tp res_tp))
     modify (DMap.insert loc (tp, res_val))
     return res
     )
 -- if
 evalExp' (SIfStmt bexp stmt1 stmt2) = do
     env <- lift ask
-    (BoolD res) <- evalBExp' bexp
+    (tp, BoolD res) <- evalExp' bexp
     evalExp' $ if res then stmt1 else stmt2
 -- while loop
-evalExp' loop@(SWhile bexp stmt) = evalExp' (SIfStmt bexp (SScln stmt loop) Skip)
+evalExp' loop@(SWhile bexp stmt) = evalExp' (SScln stmt (SIfStmt bexp loop Skip))
 -- Semicolon
 evalExp' (SScln stmt1 stmt2) = do
     res1 <- evalExp' stmt1
@@ -140,7 +225,6 @@ evalExp' (SBegin decl stmt) = do
 -- Function call
 evalExp' (FooCall fooname fooargNames) = withVar' fooname (\loc -> do
     (tp, val) <- getValue loc
-    -- assertTrue (tp ==  ) todo: obsługa typu
     let (Foo envfunction@(env, foo)) = val
     case foo of
         (RawExp rawexp) -> do
@@ -156,70 +240,25 @@ evalExp' (FooCall fooname fooargNames) = withVar' fooname (\loc -> do
     )
 -- Function bind
 evalExp' (FooBind fooname fooargNames) = withVar' fooname (\loc -> do
-    (tp, val) <- getValue loc -- todo: obsługa typu
+    (tp, val) <- getValue loc
     let (Foo envfunction) = val
     args <- sequence (map evalExp' fooargNames)
     evalEnvFun' envfunction tp args
     )
 
-{-
-
-evalExp :: Exp ->  Datatype
-evalExp exp = fst $ runReaderT (runStateT (evalExp' exp) DMap.empty) []
--}
-
-evalExpEither :: Exp -> Either Exception (Type, Datatype)
+evalExpEither :: Exp -> Either Exception Mementry
 evalExpEither exp = runReaderT (evalStateT (evalExp' exp) DMap.empty) []
-{-
 
-evalExp2 :: Exp -> Int
-evalExp2 exp = let (Num res) = evalExp exp in res
-
--}
-
-evalBExp' :: BExp -> StoreWithEnv Datatype
--- sama wartosc
-evalBExp' (BEBool b) = return $ BoolD b
--- zlozenie wyrazen
-evalBExp' (BEOp bop bexp1 bexp2) = do
-    retval1 <- evalBExp' bexp1
-    retval2 <- evalBExp' bexp2
-    return $ getOp bop retval1 retval2
--- ewaluacja zmiennej
-evalBExp' (BEVar varName) = do
-    env <- lift ask
-    case lookup varName env of
-        Nothing -> return $ BoolD False -- todo: obsługa niezadeklarwanej zmiennej
-        Just loc -> do
-            state <- get
-            let (tp, dt) = state DMap.! loc
-            return dt -- todo: obsługa niezaalokowanej pamięci
--- ewaluacja porownania
-evalBExp' (BCmp ord exp1 exp2) = do
-    (tp1 ,(Num ret1)) <- evalExp' exp1
-    (tp2 ,(Num ret2)) <- evalExp' exp2
-    assertTrue (tp1 == tp2) "Comparision between different types"
-    return . BoolD $ (compare ret1 ret2) == ord
-{-
-
-evalBExp :: BExp -> Bool
-evalBExp bexp = let (BoolD res) = fst $ runReader (runStateT (evalBExp' bexp) DMap.empty) [] in res
--}
 {- STMT -}
+execStoreWithEnv ::  StoreWithEnv a -> Either Exception (a, Store)
+execStoreWithEnv mn = runReaderT (runStateT mn DMap.empty) []
 
-execStmt :: Exp -> Either Exception ((Type, Datatype), Store)
+execStmt :: Exp -> Either Exception (Mementry, Store)
 execStmt stmt = runReaderT (runStateT (evalExp' stmt) DMap.empty) []
 
-execStmtEnv :: Env -> Exp -> Either Exception ((Type, Datatype), Store)
+execStmtEnv :: Env -> Exp -> Either Exception (Mementry, Store)
 execStmtEnv env stmt = runReaderT (runStateT (evalExp' stmt) DMap.empty) env
-{-
 
-stateStmt :: Exp -> Store
-stateStmt = snd . execStmt
-
-evalStmt :: Exp -> Datatype
-evalStmt = fst . execStmt
--}
 
 showStore :: Store -> IO()
 showStore = showStoreHelper 0 0
@@ -296,20 +335,24 @@ declareVars tp vars env store = execState (declareVars' tp vars) (env, store)
 declareVar :: Type -> Var -> Env -> Store -> (Env, Store) -- todo: bez overheadu w postaci tablicy
 declareVar tp var = declareVars tp [var]
 
+
+stmt_main :: IO()
 stmt_main = do
     contents <- getContents
     let abstractSyn = semPBlock $ lanParse $ lanTokens contents
     putStrLn $ show abstractSyn
+    putStrLn $  "\n\n" ++ " ---------- "
     let env = [("x", 0), ("y", 1) , ("z", 2)]
-    let res = execStmt abstractSyn
+    let res = execStoreWithEnv (checkExp' abstractSyn)
     case res of
-        Left message -> putStrLn message
-        Right (dt, store) -> showStore store
-{-
-    let test2 = ELet "x" (EInt 2) (EVar "x")
-    let test3 = SBegin  (DDecl "x" (Num 1)) (SAsgn "x" (EInt 6))
-    showStore $ stateStmt test3-}
-
+        Left message -> do
+            putStrLn ("Type Error: " ++ message)
+        Right (dt, store) ->  do
+            let res2 = execStoreWithEnv (evalExp' abstractSyn)
+            case res2 of
+                Left message -> putStrLn ("Runtime Error: " ++ message)
+                Right (dt, store) -> showStore store
+    putStrLn $ " ---------- " ++ "\n\n"
 
 
 

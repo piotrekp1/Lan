@@ -1,0 +1,4 @@
+let x :: Int;
+{
+	x = if 2 + 2 then 4 else 5;
+}

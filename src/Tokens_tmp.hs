@@ -18,6 +18,7 @@ tokens :-
    in                         { \s -> TokenIn }
    bind                       { \s -> TokenBind }
    Int                        { \s -> TokenType s }
+   Bool                       { \s -> TokenType s }
    True                       { \s -> TokenTrue }
    False                      { \s -> TokenFalse }
 

@@ -1,0 +1,28 @@
+let var :: Int;
+let var2 :: Int;
+//let foo :: Int -> Int;
+let acc :: Int -> (Int -> Int -> Int) -> Int;
+let acc2 :: Int -> (Int -> Int -> Int) -> Int;
+let sum :: Int -> Int -> Int;
+let product :: Int -> Int -> Int;
+let silnia :: Int -> Int;
+let res :: Int;
+let i :: Int;
+foo x := var * x;
+acc n foo := {
+    res = 0;
+    i = 1;
+    while i < n + 1 : {
+        res = foo res i;
+	i = i + 1;
+    };
+    res
+};
+acc2 n foo := if n == 1 then 1 else foo (acc2 (n-1) foo) n;
+sum a b := a + b;
+product a b := a * b;
+silnia n := acc n product;
+{
+    var = acc 4 sum;
+    var2 = acc2 4 product;
+}

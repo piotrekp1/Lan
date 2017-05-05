@@ -26,11 +26,15 @@ semTerm (TOp op term pexpfoo) = EOp op (semTerm term) (semPExpFoo pexpfoo)
 semTerm (PExpFoo pexpfoo) = semPExpFoo pexpfoo
 
 semFact :: Factor -> Exp
-semFact (Int a) = EInt a
+semFact (Value val) = semVal val
 semFact (Var varName) = EVar varName
 semFact (Brack pexp0) = semPExp0 pexp0
 semFact (FFooCall pexpfoo) = semPExpFoo pexpfoo
+semFact (BExp1 bexp1) = semPBexp1 bexp1
 
+semVal :: Value -> Exp
+semVal (IntP a) = EVal $ (IntT, Num a)
+semVal (BoolP a) = EVal $ (BoolT, BoolD a)
 
 semPBlock :: PBlock -> Exp
 semPBlock (PBegin pdecl psntnc) = SBegin (semPDecl pdecl) (semPSntnc psntnc)
@@ -45,8 +49,8 @@ semPSntnc (PExp0 pexp0) = semPExp0 pexp0
 
 semPExp0 :: PExp0 -> Exp
 semPExp0 (PAsgn var pexp0) = SAsgn var $ semPExp0 pexp0
-semPExp0 (PIfStmt pbexp pexp0_1 pexp0_2) = SIfStmt (semPBexp1 pbexp) (semPExp0 pexp0_1) (semPExp0 pexp0_2)
-semPExp0 (PWhile pexp pexp0) = SWhile (semPBexp1 pexp) (semPExp0 pexp0)
+semPExp0 (PIfStmt pbexp pexp0_1 pexp0_2) = SIfStmt (semPExp0 pbexp) (semPExp0 pexp0_1) (semPExp0 pexp0_2)
+semPExp0 (PWhile pexp pexp0) = SWhile (semPExp0 pexp) (semPExp0 pexp0)
 semPExp0 (PExp pexp) = semPExp pexp
 semPExp0 (SntBrack psntnc) = semPSntnc psntnc
 
@@ -64,18 +68,18 @@ semPFooType (PType type_str) = getType type_str
 semPFooType (PMltType pfootype1 pfootype2) = FooT (semPFooType pfootype1) (semPFooType pfootype2)
 semPFooType (PTypeBrack pfootype) = FooBr $ semPFooType pfootype
 
-semPBexp1 :: BExp1 -> BExp
-semPBexp1 (Or bexp1_1 bexp1_2) = BEOp OpOr (semPBexp1 bexp1_1) (semPBexp1 bexp1_2)
+semPBexp1 :: BExp1 -> Exp
+semPBexp1 (Or bexp1_1 bexp1_2) = EOp OpOr (semPBexp1 bexp1_1) (semPBexp1 bexp1_2)
 semPBexp1 (BExp2 bexp2) = semPBexp2 bexp2
 
-semPBexp2 :: BExp2 -> BExp
-semPBexp2 (And bexp1_1 bexp1_2) = BEOp OpAnd (semPBexp2 bexp1_1) (semPBexp2 bexp1_2)
+semPBexp2 :: BExp2 -> Exp
+semPBexp2 (And bexp2_1 bexp2_2) = EOp OpAnd (semPBexp2 bexp2_1) (semPBexp2 bexp2_2)
 semPBexp2 (BBrack bexp1) = semPBexp1 bexp1
-semPBexp2 (BVal bval) = BEBool bval
+semPBexp2 (BVal bval) = EVal (BoolT, BoolD bval)
 semPBexp2 (PCmp pcmp) = semPCmp pcmp
 
-semPCmp :: PCmp -> BExp
-semPCmp (PCmpExp comp pexp1 pexp2) = BCmp comp (semPExp pexp1) (semPExp pexp2)
+semPCmp :: PCmp -> Exp
+semPCmp (PCmpExp comp pexp0_1 pexp0_2) = EOp comp (semPExp0 pexp0_1) (semPExp0 pexp0_2)
 
 translatePFooArgs :: PFooArgs -> [Exp]
 translatePFooArgs (PSngArg pfactor) = [semFact pfactor]

@@ -17,11 +17,17 @@ data Term
       deriving Show
 
 data Factor
-      = Int Int
+      = Value Value
       | Var String
       | Brack PExp0
       | FFooCall PExpFoo
+      | BExp1 BExp1
       deriving Show
+
+data Value
+     = IntP Int
+     | BoolP Bool
+     deriving Show
 
 data PBlock
     = PBegin PDecl PSntnc
@@ -43,8 +49,8 @@ data PExpFoo
 
 data PExp0
     = PAsgn Var PExp0
-    | PIfStmt BExp1 PExp0 PExp0
-    | PWhile BExp1 PExp0
+    | PIfStmt PExp0 PExp0 PExp0
+    | PWhile PExp0 PExp0
     | PExp PExp
     | SntBrack PSntnc
     deriving Show
@@ -86,5 +92,5 @@ data BExp2
     deriving Show
 
 data PCmp
-    = PCmpExp Ordering PExp PExp
+    = PCmpExp Op PExp0 PExp0
     deriving Show

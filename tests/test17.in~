@@ -1,0 +1,7 @@
+let var :: Int;
+let var2 :: Int;
+let foo :: Int -> Int;
+foo x := var * x;
+{
+    var2 = foo var;
+}

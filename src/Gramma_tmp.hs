@@ -57,8 +57,8 @@ PSntnc :                           { PSkip }
       | PExp0                      { PExp0 $1 }
 
 PExp0 : var '=' PExp0             { PAsgn $1 $3 }
-      | if BExp1 then PExp0 else PExp0 { PIfStmt $2 $4 $6 }
-      | while BExp1 ':' PExp0     { PWhile $2 $4 }
+      | if PExp0 then PExp0 else PExp0 { PIfStmt $2 $4 $6 }
+      | while PExp0 ':' PExp0     { PWhile $2 $4 }
       | PExp                      { PExp $1 }
       | '{' PSntnc '}'            { SntBrack $2 }
 
@@ -79,10 +79,13 @@ PExpFoo : var PFooArgs             { PFooCall $1 $2 }
       | bind var                   { PFooBind $2 PEmptArgs }
       | Factor                     { Factor $1 }
 
-Factor
-      : '(' PExp0 ')'              { Brack $2 }
-      | int                        { Int $1 }
+Factor : '(' PExp0 ')'              { Brack $2 }
+      | Value                       { Value $1 }
       | var                        { Var $1 }
+      | BExp1                      { BExp1 $1 }
+
+Value : int                         { IntP $1 }
+      | bool                        { BoolP $1 }
 
 PFooArgs : Factor                  { PSngArg $1 }
       | Factor PFooArgs            { PMltArgs $1 $2 }
@@ -110,9 +113,9 @@ BExp2 : BExp2 and BExp2          { And $1 $3 }
       | '(' BExp1 ')'            { BBrack $2 }
       | PCmp                     { PCmp $1 }
 
-PCmp  : PExp '==' PExp           { PCmpExp EQ $1 $3 }
-      | PExp '>' PExp            { PCmpExp GT $1 $3 }
-      | PExp '<' PExp            { PCmpExp LT $1 $3 }
+PCmp  : PExp0 '==' PExp0           { PCmpExp OpEQ $1 $3 }
+      | PExp0 '>' PExp0            { PCmpExp OpGT $1 $3 }
+      | PExp0 '<' PExp0            { PCmpExp OpLT $1 $3 }
 
 
 

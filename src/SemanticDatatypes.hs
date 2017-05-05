@@ -7,11 +7,12 @@ import Control.Monad.State
 type Loc = Int
 
 type Env = [(Var, Loc)]
-type Store = DMap.Map Loc (Type, Datatype)
+type Store = DMap.Map Loc Mementry
 
 type Exception = String
-type StoreWithEnv = StateT Store (ReaderT Env (Either Exception))
 
+type StoreWithEnv = StateT Store (ReaderT Env (Either Exception))
+type Mementry = (Type, Datatype)
 data Function
     = RawExp Exp
     | ArgFun Var Function
@@ -31,6 +32,17 @@ data Type
     | Ign -- type used to return from statements that shouldn't have ret value (e.g. print)
     deriving Eq
 
+optype :: Op -> Type
+optype (OpAdd) = FooT IntT (FooT IntT IntT)
+optype (OpMul) = FooT IntT (FooT IntT IntT)
+optype (OpSub) = FooT IntT (FooT IntT IntT)
+optype (OpDiv) = FooT IntT (FooT IntT IntT)
+optype (OpOr) = FooT BoolT (FooT BoolT BoolT)
+optype (OpAnd) = FooT BoolT (FooT BoolT BoolT)
+optype (OpEQ) = FooT IntT (FooT IntT BoolT)
+optype (OpLT) = FooT IntT (FooT IntT BoolT)
+optype (OpGT) = FooT IntT (FooT IntT BoolT)
+
 instance Show Type where
     show (IntT) = "Int"
     show (BoolT) = "Bool"
@@ -45,16 +57,16 @@ data Datatype
     deriving (Show)
 
 
-data Exp =
-      EInt Int
+data Exp
+    = EVal (Type, Datatype)
     | EOp Op Exp Exp
     | EVar Var
     | ELet Var Exp Exp
     | Skip
     | SAsgn Var Exp
     | SScln Exp Exp
-    | SIfStmt BExp Exp Exp
-    | SWhile BExp Exp
+    | SIfStmt Exp Exp Exp
+    | SWhile Exp Exp
     | SBegin Decl Exp
     | FooCall Var [Exp]
     | FooBind Var [Exp]

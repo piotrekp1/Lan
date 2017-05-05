@@ -28,6 +28,7 @@ data Type
     | BoolT
     | FooBr Type
     | FooT Type Type
+    | Ign -- type used to return from statements that shouldn't have ret value (e.g. print)
     deriving Eq
 
 instance Show Type where
@@ -35,7 +36,7 @@ instance Show Type where
     show (BoolT) = "Bool"
     show (FooBr tp) = "(" ++ show tp ++ ")"
     show (FooT tp1 tp2) = show tp1 ++ " -> " ++ show tp2
-
+    show (Ign) = "Ign"
 data Datatype
     = Num Int
     | BoolD Bool

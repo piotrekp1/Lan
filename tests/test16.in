@@ -1,0 +1,20 @@
+let var :: Int;
+let var2 :: Int;
+let foo :: Int -> Int;
+foo x := 2 * x;
+let silnia :: Int -> Int;
+let silnia2 :: Int -> Int;
+let silnia3 :: Int -> Int;
+let res :: Int;
+let i :: Int;
+let temp :: Int;
+let set_temp :: Int -> Int;
+
+silnia x := if x == 0 then 1 else x * silnia (x - 1);
+silnia2 x := { res=1; while x > 1 : { x = x - 1; res=res * (x + 1) } };
+silnia3 x := { res=1; i=1; while i < x : res = res * i }
+{
+    var = silnia2 3;
+    var2 = silnia3 3;
+  // var2 = while var > 4 : { var = var - 1; silnia var };
+}

@@ -89,7 +89,7 @@ getNonEmptyValue loc = do
         otherwise -> return res
 
 assertTrue :: Bool -> String -> StoreWithEnv (Type, Datatype)
-assertTrue predicate message = if not predicate then fail message else return (IntT, Undefined) -- todo upewnic się że to nie szkodzi
+assertTrue predicate message = if not predicate then fail message else return (Ign, Undefined) -- todo upewnic się że to nie szkodzi
 
 evalExp' :: Exp -> StoreWithEnv (Type, Datatype)
 -- sama wartosc
@@ -107,7 +107,7 @@ evalExp' (EVar varName) = withVar' varName (\loc -> do
         otherwise -> return res
     )
 -- skip
-evalExp' Skip = return $ (IntT, Num 0) -- todo ignore element
+evalExp' Skip = return $ (Ign, Undefined) -- todo ignore element
 -- overwriting a variable
 evalExp' (SAsgn varName exp) = withVar' varName (\loc -> do
     res@(res_tp, res_val) <- evalExp' exp   -- todo kontrola typu!
@@ -125,8 +125,11 @@ evalExp' (SIfStmt bexp stmt1 stmt2) = do
 evalExp' loop@(SWhile bexp stmt) = evalExp' (SIfStmt bexp (SScln stmt loop) Skip)
 -- Semicolon
 evalExp' (SScln stmt1 stmt2) = do
-    evalExp' stmt1
-    evalExp' stmt2
+    res1 <- evalExp' stmt1
+    res2@(tp2, val2) <- evalExp' stmt2
+    case tp2 of
+        Ign -> return res1
+        otherwise -> return res2
 -- Begin block
 evalExp' (SBegin decl stmt) = do
     store <- get

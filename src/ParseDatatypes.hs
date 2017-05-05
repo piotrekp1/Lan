@@ -12,14 +12,15 @@ data Exp1
       deriving Show
 
 data Term
-      = Factor Factor
-      | TOp Op Term Factor
+      = PExpFoo PExpFoo
+      | TOp Op Term PExpFoo
       deriving Show
 
 data Factor
       = Int Int
       | Var String
-      | Brack PExpFoo
+      | Brack PExp0
+      | FFooCall PExpFoo
       deriving Show
 
 data PBlock
@@ -31,27 +32,26 @@ data PBlock
 data PSntnc
     = PSkip
     | PScln PSntnc PSntnc
-    | PExpFoo PExpFoo
+    | PExp0 PExp0
       deriving Show
 
 data PExpFoo
     = PFooCall Var PFooArgs
-    | PExp0 PExp0
     | PFooBind Var PFooArgs
+    | Factor Factor
      deriving Show
 
 data PExp0
-    = PAsgn Var PExpFoo
-    | PIfStmt BExp1 PExpFoo PExpFoo
-    | PWhile BExp1 PExpFoo
+    = PAsgn Var PExp0
+    | PIfStmt BExp1 PExp0 PExp0
+    | PWhile BExp1 PExp0
     | PExp PExp
     | SntBrack PSntnc
-    | PFooBrack PExpFoo
     deriving Show
 
 data PFooArgs
-    = PSngArg PExp0
-    | PMltArgs PExp0 PFooArgs
+    = PSngArg Factor
+    | PMltArgs Factor PFooArgs
     | PEmptArgs
     deriving Show
 
@@ -59,7 +59,7 @@ data PDecl
     = PDSkip
     | PSingDecl Var PFooType -- datatype Name
     | PDScln PDecl PDecl
-    | PFooDef PFooArgNames PExpFoo
+    | PFooDef PFooArgNames PExp0
     deriving Show
 
 data PFooArgNames

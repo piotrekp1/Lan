@@ -1,14 +1,17 @@
 let x :: Int;
+let t :: Int;
 let pred :: Bool;
 let cpred :: Int -> Bool;
 let GT0 :: Int -> Bool;
 let eval2 :: (Int -> Int) -> Int;
+let razy8 :: Int -> Int;
 eval2 foo := foo 2;
+razy8 x := x * 8;
 cpred x := if x == 0 then False else True;
 GT0 x := x > 0;
 {        
    	x = if True then 4 else 5;
-	x = eval2 x;
+	t = eval2 razy8;
 	while GT0 x : x = x - 8;
 	pred = True;
 //	pred = cpred pred;

@@ -94,7 +94,6 @@ withVar' varName ifThereIs = do
         Just loc -> ifThereIs loc
 
 getValue :: Loc -> StoreWithEnv Mementry
--- todo: typechecking
 getValue loc = do
     store <- get
     let err_message = "tried to get memory from not DECLARED variable but with set loc. "
@@ -165,6 +164,9 @@ checkExp' (FooCall fooname args) = withVar' fooname (\l -> getTypeLoc l >>= chec
 -- Function bind
 checkExp' (FooBind fooname args) = checkExp' (FooCall fooname args)
 
+unbrackFoo :: Type -> Type
+unbrackFoo (FooBr tp) = tp
+unbrackFoo a = a
 
 checkFooCallType' :: String -> [Exp] -> Type -> StoreWithEnv Type
 checkFooCallType' fooname [] footype = return footype
@@ -172,7 +174,7 @@ checkFooCallType' fooname (firstarg:rest) footype = do
     case footype of
         FooT from_tp to_tp -> do
             firstarg_tp <- checkExp' firstarg
-            assertTrue (from_tp == firstarg_tp) $ "Wrong argument type in call of a function named: " ++ fooname ++ " - " ++ (typeMismatch from_tp firstarg_tp)
+            assertTrue (unbrackFoo from_tp == unbrackFoo firstarg_tp) $ "Wrong argument type in call of a function named: " ++ fooname ++ " - " ++ (typeMismatch from_tp firstarg_tp)
             checkFooCallType' fooname rest to_tp
         otherwise -> err $ "Too many parameters in a call, variable: " ++ fooname ++ " - but with parameters given. "
 

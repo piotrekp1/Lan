@@ -1,6 +1,27 @@
 module Main where
-import Stmt
+import ExpEvaluator
+import StaticChecker
+import Utils
 --import AbstractSyn
 --import EvalExp
+import Gramma
+import Tokens
+import DTCleaner
 
-main = stmt_main
+
+main = do
+     contents <- getContents
+     let abstractSyn = semPBlock $ lanParse $ lanTokens contents
+     putStrLn $ show abstractSyn
+     putStrLn $  "\n\n" ++ " ---------- "
+     let env = [("x", 0), ("y", 1) , ("z", 2)]
+     let res = execStoreWithEnv (checkExp' abstractSyn)
+     case res of
+         Left message -> do
+             putStrLn ("Type Error: " ++ message)
+         Right (dt, store) ->  do
+             let res2 = execStoreWithEnv (evalExp' abstractSyn)
+             case res2 of
+                 Left message -> putStrLn ("Runtime Error: " ++ message)
+                 Right (dt, store) -> showStore store
+     putStrLn $ " ---------- " ++ "\n\n"

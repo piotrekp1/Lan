@@ -2,8 +2,6 @@ module Memory where
 
 import Datatypes
 import SemanticDatatypes
-
-
 import qualified Data.Map.Strict as DMap
 
 declareEnvVar :: Var -> Loc -> Env -> Env

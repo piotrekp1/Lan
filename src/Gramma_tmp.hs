@@ -39,11 +39,10 @@ import Tokens
       type            { TokenType $$ }
       ':'             { TokenTwoDots}
       '::'            { TokenDecl }
-      true            { TokenTrue }
-      false           { TokenFalse }
       arrow           { TokenArrow }
       ':='            { TokenDfn }
       bind            { TokenBind }
+      '\\'             { TokenBackslash }
 %%
 
 
@@ -61,6 +60,7 @@ PExp0 : var '=' PExp0             { PAsgn $1 $3 }
       | while PExp0 ':' PExp0     { PWhile $2 $4 }
       | PExp                      { PExp $1 }
       | '{' PSntnc '}'            { SntBrack $2 }
+      | BExp1                     { BExp1 $1 }
 
 PExp  : let var '=' PExp in PExp { Let $2 $4 $6 }
       | Exp1                    { Exp1 $1 }
@@ -78,11 +78,14 @@ PExpFoo : var PFooArgs             { PFooCall $1 $2 }
       | bind var PFooArgs          { PFooBind $2 $3 }
       | bind var                   { PFooBind $2 PEmptArgs }
       | Factor                     { Factor $1 }
+      | '(' Lambda ')' PFooArgs    { PLamCall $2 $4 }
 
 Factor : '(' PExp0 ')'              { Brack $2 }
       | Value                       { Value $1 }
       | var                        { Var $1 }
-      | BExp1                      { BExp1 $1 }
+      | Lambda                      { Lambda $1 }
+
+Lambda : '\\' var '::' PFooType arrow PExp0 { PLam $2 $4 $6}
 
 Value : int                         { IntP $1 }
       | bool                        { BoolP $1 }
@@ -95,10 +98,8 @@ PDecl : let var '::' PFooType   { PSingDecl $2 $4}
       | PDecl separator          { PDScln $1 PDSkip }
       | PFooArgNames ':=' PExp0 { PFooDef $1 $3 } -- todo: powoduje kolizję gramatyki
 
-
 PFooArgNames : var                 { PVarName $1 }
       | var PFooArgNames           { PVarNames $1 $2}
-
 
 PFooType : PFooType arrow PFooType { PMltType $1 $3 }
       | type                     { PType  $1 }
@@ -108,8 +109,6 @@ BExp1 : BExp1 or BExp1           { Or $1 $3 }
       | BExp2                    { BExp2 $1 }
 
 BExp2 : BExp2 and BExp2          { And $1 $3 }
-      | true                     { BVal True }
-      | false                    { BVal False }
       | '(' BExp1 ')'            { BBrack $2 }
       | PCmp                     { PCmp $1 }
 

@@ -47,7 +47,7 @@ instance Show Type where
     show (IntT) = "Int"
     show (BoolT) = "Bool"
     show (FooBr tp) = "(" ++ show tp ++ ")"
-    show (FooT tp1 tp2) = show tp1 ++ " -> " ++ show tp2
+    show (FooT tp1 tp2) = "(" ++ show tp1 ++ " -> " ++ show tp2 ++ ")"
     show (Ign) = "Ign"
 data Datatype
     = Num Int
@@ -70,7 +70,12 @@ data Exp
     | SBegin Decl Exp
     | FooCall Var [Exp]
     | FooBind Var [Exp]
+    | SLam SLam
+    | LamCall SLam [Exp]
     deriving (Show)
+
+data SLam
+    = SLamCon Var Type Exp deriving Show
 
 data BExp =
      BEBool Bool

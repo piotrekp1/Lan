@@ -6,7 +6,7 @@
 (setq lan-keywords-regexp (regexp-opt lan-keywords 'words))
 (setq lan-types-regexp (regexp-opt lan-types 'words))
 (setq lan-constants-regexp (regexp-opt lan-constants 'words))
-(setq lan-function-decl-regexp "\\([^:; ]*\\) [ ]*::")
+(setq lan-function-decl-regexp "\\([^\\:; ]*\\) [ ]*::")
 
 (setq lan-highlights
       `(

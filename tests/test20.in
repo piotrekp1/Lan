@@ -1,0 +1,18 @@
+// lambdas
+let first_st :: (Int -> Bool) -> Int;
+let not :: Bool -> Bool;
+let i :: Int;
+let foo :: Int -> Bool;
+not b := if b then False else True;
+first_st foo := { i = 0; while not (foo i) : i = i + 1; };
+foo x := True;
+{
+      i = first_st ( \x :: Int -> x > 7);
+//      while not (first_st (\x :: Int -> x == 5)) : i = i+1;
+//      resint = sum 2 5;
+      // i = 0;
+//       res = not (first_st i);
+//       resint = first_st i;
+//      resint2 = (\x :: Int -> \y :: Int -> x + y) 2 5;
+//      resint2  = (\x :: Int -> \y :: Int -> x + y) 2 5;
+}  

@@ -19,12 +19,12 @@ tokens :-
    bind                       { \s -> TokenBind }
    Int                        { \s -> TokenType s }
    Bool                       { \s -> TokenType s }
-   True                       { \s -> TokenTrue }
-   False                      { \s -> TokenFalse }
-
+   True                       { \s -> TokenBool True }
+   False                      { \s -> TokenBool False }
    and                        { \s -> TokenAnd }
    or                         { \s -> TokenOr }
    $alpha [$alpha $digit \_ \']* { \s -> TokenVar s }
+   "\"                         { \s -> TokenBackslash }
    $digit+                    { \s -> TokenInt (read s)}
    \:\=                        { \s -> TokenDfn }
    \-\>                        { \s -> TokenArrow }
@@ -79,6 +79,7 @@ data Token
       | TokenArrow
       | TokenDfn
       | TokenBind
+      | TokenBackslash
       deriving Show
 
 lanTokens = alexScanTokens

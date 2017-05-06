@@ -1,0 +1,7 @@
+let x :: Int;
+let a :: Int -> Bool;
+let res :: Bool;
+a t := (t / 2) * 2 == t;
+{
+    res = a 5;
+}

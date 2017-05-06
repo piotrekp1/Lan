@@ -1,0 +1,26 @@
+let collatz_steps :: Int -> Int;
+let res :: Int;
+let highest_that :: (Int -> Bool) -> Int -> Int;
+let i :: Int;
+let i2 :: Int;
+let res :: Int;
+let compose :: (Int -> Bool) -> (Int -> Int) -> (Int -> Bool);
+compose foo_a foo_b inp := foo_a (foo_b inp);
+
+highest_that pred timeout := {
+    i = 0;
+    res = 0;
+    while i < timeout : { i = i + 1; if pred i then res = i else res; }
+};
+let LT :: Int -> Int -> Bool;
+LT z k := k < z;
+collatz_steps st := {
+    i2 = 0;
+    while (st > 1) : {st = if even st then st / 2 else 3 * st + 1; i2 = i2 + 1}
+};
+
+{
+    // Program calculating the highest number in range 1..15 such that
+    // number of steps that are needed to get to 1 is less then 8
+    res = highest_that (compose (LT 8) collatz_steps) 15;
+}

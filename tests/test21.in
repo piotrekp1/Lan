@@ -1,0 +1,11 @@
+let not :: Bool -> Bool;
+not x := if x then False else True;
+let i :: Int;
+let foo :: Int -> Int;
+foo a := 2 * a;
+{
+        i = 0;
+	while foo 5 : i = i + 1;
+//	while not (foo i) : i = i + 1;
+//      while not (first_st (\x :: Int -> x == 5)) : i = i+1;
+}

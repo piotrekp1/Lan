@@ -1,0 +1,7 @@
+// lambdas
+let foo :: Int -> Int;
+let res :: Int;
+{
+    foo = ( \x :: Int -> x * 2 );
+    res = foo 5;
+}  

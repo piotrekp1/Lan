@@ -21,8 +21,12 @@ data Factor
       | Var String
       | Brack PExp0
       | FFooCall PExpFoo
-      | BExp1 BExp1
+      | Lambda Lambda
       deriving Show
+
+data Lambda
+     = PLam Var PFooType PExp0
+     deriving Show
 
 data Value
      = IntP Int
@@ -44,6 +48,7 @@ data PSntnc
 data PExpFoo
     = PFooCall Var PFooArgs
     | PFooBind Var PFooArgs
+    | PLamCall Lambda PFooArgs
     | Factor Factor
      deriving Show
 
@@ -53,6 +58,7 @@ data PExp0
     | PWhile PExp0 PExp0
     | PExp PExp
     | SntBrack PSntnc
+    | BExp1 BExp1
     deriving Show
 
 data PFooArgs

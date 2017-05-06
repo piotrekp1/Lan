@@ -30,7 +30,13 @@ semFact (Value val) = semVal val
 semFact (Var varName) = EVar varName
 semFact (Brack pexp0) = semPExp0 pexp0
 semFact (FFooCall pexpfoo) = semPExpFoo pexpfoo
-semFact (BExp1 bexp1) = semPBexp1 bexp1
+semFact (Lambda lam) = semLambdaExp lam
+
+semLambda :: Lambda -> SLam
+semLambda (PLam var vartype fooexp) = SLamCon var (semPFooType vartype) (semPExp0 fooexp)
+
+semLambdaExp :: Lambda -> Exp
+semLambdaExp synLambda = SLam $ semLambda synLambda
 
 semVal :: Value -> Exp
 semVal (IntP a) = EVal $ (IntT, Num a)
@@ -53,10 +59,10 @@ semPExp0 (PIfStmt pbexp pexp0_1 pexp0_2) = SIfStmt (semPExp0 pbexp) (semPExp0 pe
 semPExp0 (PWhile pexp pexp0) = SWhile (semPExp0 pexp) (semPExp0 pexp0)
 semPExp0 (PExp pexp) = semPExp pexp
 semPExp0 (SntBrack psntnc) = semPSntnc psntnc
+semPExp0 (BExp1 bexp1) = semPBexp1 bexp1
 
 semPDecl :: PDecl -> Decl
 semPDecl (PDSkip) = DSkip
---semPDecl (PSingDecl var typename) = DDecl var $ standardValue . getType $ typename
 semPDecl (PSingDecl var typename) = FooDcl var $ semPFooType typename
 semPDecl (PDScln pdecl1 pdecl2) = DScln (semPDecl pdecl1) (semPDecl pdecl2)
 semPDecl (PFooDef pfooArgNames pexp0) = FooDfn fooName args exp where
@@ -66,7 +72,7 @@ semPDecl (PFooDef pfooArgNames pexp0) = FooDfn fooName args exp where
 semPFooType :: PFooType -> Type
 semPFooType (PType type_str) = getType type_str
 semPFooType (PMltType pfootype1 pfootype2) = FooT (semPFooType pfootype1) (semPFooType pfootype2)
-semPFooType (PTypeBrack pfootype) = FooBr $ semPFooType pfootype
+semPFooType (PTypeBrack pfootype) = semPFooType pfootype
 
 semPBexp1 :: BExp1 -> Exp
 semPBexp1 (Or bexp1_1 bexp1_2) = EOp OpOr (semPBexp1 bexp1_1) (semPBexp1 bexp1_2)
@@ -89,7 +95,9 @@ semPExpFoo :: PExpFoo -> Exp
 semPExpFoo (PFooCall var pfooargs) = FooCall var (translatePFooArgs pfooargs)
 semPExpFoo (PFooBind var (PEmptArgs)) = FooBind var []
 semPExpFoo (PFooBind var pfooargs) = FooBind var (translatePFooArgs pfooargs)
+semPExpFoo (PLamCall lambda pfooargs) = LamCall (semLambda lambda) (translatePFooArgs pfooargs)
 semPExpFoo (Factor factor) = semFact factor
+
 
 semArgNames :: PFooArgNames -> [Var]
 semArgNames (PVarName var) = [var]

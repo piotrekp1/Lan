@@ -39,13 +39,52 @@ evalInfix op arg1 arg2 = err $ "Internal error: didn't fit any expected pattern"
     ", arg2: " ++ show arg2 ++ "."
 
 
+
+{- DECL -}
+footypes :: Type -> [Type] -- array consisting of only basic types
+footypes (IntT) = [IntT]
+footypes (BoolT) = [BoolT]
+footypes (FooBr tp) = [tp]
+footypes (FooT type1 type2) = (footypes type1) ++ (footypes type2)
+
+fooFromExpVars :: [Var] -> Exp -> Function
+fooFromExpVars [] exp = RawExp exp
+fooFromExpVars (x:xs) exp =  (ArgFun x) (fooFromExpVars xs exp)
+
+
+declareDecl' :: Decl -> StoreWithEnv Env
+-- semicolon in decl
+declareDecl' (DScln decl1 decl2) = do
+    newEnv <- declareDecl' decl1
+    local (const newEnv) $ declareDecl' decl2
+-- skip
+declareDecl' (DSkip) = lift ask
+-- fun declaration
+declareDecl' foodcl@(FooDcl varName tp) = declareVar varName tp
+-- function definition
+declareDecl' (FooDfn fooname vars expr) = do
+    loc <- getLoc fooname
+    (tp, dt) <- getValue fooname
+    env <- lift ask
+    let funEnv = Foo (env, fooFromExpVars vars expr)
+    modify (DMap.insert loc (tp, funEnv))
+    lift ask
+
+
+{- EXPS -}
+withDeclared :: Decl -> StoreWithEnv a -> StoreWithEnv a
+withDeclared decl prog = do
+    newEnv <- declareDecl' decl
+    local (const newEnv) prog
+
+
 -- assumes that tp doesnt consist FooT
 evalFun' :: Function -> [Type] -> [Mementry]  -> StoreWithEnv Mementry
 -- entire specification
 evalFun' (RawExp exp) tp args = do -- evalExp' exp bylo todo: zrobic rozroznienie pomiedzy bindem a callem
     true_foo <- evalExp' exp
     case true_foo of
-        (tp, (Foo envfunction2)) -> evalEnvFun' envfunction2 tp args
+        fooentry@(tp, (Foo envfunction2)) -> evalEnvFun' fooentry args
         otherwise -> return true_foo
 -- partial specification
 evalFun' foo@(ArgFun var fooin) tp@(argtp:resttp) [] = do
@@ -54,47 +93,30 @@ evalFun' foo@(ArgFun var fooin) tp@(argtp:resttp) [] = do
 -- too many arguments (should never be called because there is static control now)
 evalFun' (ArgFun var foo)  [] (arg:rest) = err $ "Call with too many parameters, function: " ++ var
 -- many arguments
-evalFun' (ArgFun var foo) (argtp_shouldbe:resttp) ((argtp, arg):rest) = do
-    env <- lift ask
-    store <- get
-    let declareRes = declareDecl (FooDcl var argtp) env store
-    case declareRes of
-        Left message -> err message
-        Right (newEnv, newStore) -> do
-            let loc = fromJust $ lookup var newEnv
-            modify (overwriteMem loc (argtp, arg))
-            local (const newEnv) (evalFun' foo resttp rest)
+evalFun' (ArgFun var foo) (argtp_shouldbe:resttp) ((argtp, arg):rest) = withDeclared (FooDcl var argtp) (do
+    loc <- getLoc var
+    modify (overwriteMem loc (argtp, arg))
+    evalFun' foo resttp rest
+    )
 
-
-evalEnvFun' :: EnvFunction -> Type -> [Mementry] -> StoreWithEnv Mementry
-evalEnvFun' (env, function) tp args = local (const env) (evalFun' function tps args)
+evalEnvFun' :: Mementry -> [Mementry] -> StoreWithEnv Mementry
+evalEnvFun' (tp, Foo (env, function)) args = local (const env) (evalFun' function tps args)
     where tps = footypes tp
 
-withDeclared :: Decl -> StoreWithEnv a -> StoreWithEnv a
-withDeclared decl prog = do
-    store <- get
-    env <- lift ask
-    let declareRes = declareDecl decl env store
-    case declareRes of
-        Left message -> err message
-        Right (newEnv, newStore) -> do
-            modify (const newStore)
-            local (const newEnv) prog
+
+evalFooCallExps :: [Exp] -> Mementry -> StoreWithEnv Mementry
+evalFooCallExps argexps fooentry@(tp, Foo envfunction) = mapM evalExp' argexps >>= evalEnvFun' fooentry
+evalFooCallExps [] fooentry@(tp, Foo envfunction) = evalEnvFun' fooentry []
+evalFooCallExps [] mementry = return mementry
+evalFooCallExps argexps mementry = err "too many parameters in a call"
+
 
 -- assumes that there is a function in mementry (doesn't do type checking)
 callFunction :: [Exp] -> Mementry -> StoreWithEnv Mementry
-callFunction argexps (tp, Foo envfunction@(env, foo)) = do
+callFunction argexps fooentry@(tp, Foo envfunction@(env, foo)) = do
     case foo of
-        (RawExp rawexp) -> do
-            true_foo <- evalExp' rawexp
-            case true_foo of
-                (tp, (Foo envfunction2)) -> do
-                    args <- sequence (map evalExp' argexps)
-                    evalEnvFun' envfunction2 tp args
-                otherwise -> return true_foo
-        otherwise -> do
-            args <- sequence (map evalExp' argexps)
-            evalEnvFun' envfunction tp args
+        (RawExp rawexp) -> evalExp' rawexp >>= evalFooCallExps argexps
+        otherwise -> evalFooCallExps argexps fooentry
 callFunction _ (tp, (Undefined)) = err "call to a function that was not defined"
 callFunction argexps mementry = err $ show mementry ++ "\n ---- \n" ++ show argexps
 
@@ -107,18 +129,13 @@ evalExp' (EOp op exp1 exp2) = do
     res2 <- evalExp' exp2
     evalInfix op res1 res2
 -- ewaluacja zmiennej
-evalExp' (EVar varName) = do
-    loc <- getLoc varName
-    res@(tp, dt) <- getNonEmptyValue loc
-    case dt of
-        Foo envfunction -> evalEnvFun' envfunction tp []  -- todo: obsługa niezaalokowanej pamięci
-        otherwise -> return res
+evalExp' (EVar varName) = getNonEmptyValue varName >>= evalFooCallExps [] -- todo move everything to a foo call?
 -- skip
 evalExp' Skip = return $ (Ign, Undefined)
 -- overwriting a variable
 evalExp' (SAsgn varName exp) = do
     loc <- getLoc varName
-    (tp, val) <- getValue loc
+    (tp, val) <- getValue varName
     res@(res_tp, res_val) <- evalExp' exp
     modify (DMap.insert loc (tp, res_val))
     return res
@@ -139,84 +156,22 @@ evalExp' (SScln stmt1 stmt2) = do
 -- Begin block
 evalExp' (SBegin decl stmt) = withDeclared decl (evalExp' stmt)
 -- Function call
-evalExp' (FooCall fooname argexps) = pure fooname >>= getLoc >>= getValue >>= callFunction argexps
+evalExp' (FooCall fooname argexps) = getValue fooname >>= callFunction argexps
 -- Function bind
-evalExp' (FooBind fooname fooargNames) = do
-    loc <- getLoc fooname
-    (tp, val) <- getValue loc
-    let (Foo envfunction) = val
-    args <- sequence (map evalExp' fooargNames)
-    evalEnvFun' envfunction tp args
+evalExp' (FooBind fooname argexps) = getValue fooname >>= evalFooCallExps argexps
 -- lambda
 evalExp' lambda@(SLam (SLamCon var vartype fooexp)) = do
-    env <- ask
+    env <- lift ask
     tp <- checkExp' lambda
     let funEnv = Foo (env, fooFromExpVars [var] fooexp)
     return (tp, funEnv)
 -- lambda call
-evalExp' (LamCall lam argexps) = pure lam >>= evalExp' . SLam >>= callFunction argexps
+evalExp' (LamCall lam argexps) = evalExp' (SLam lam) >>= callFunction argexps
 
-
+execStmt :: Exp -> Either Exception (Mementry, Store)
+execStmt stmt = execStoreWithEnv $ evalExp' stmt
 
 evalExpEither :: Exp -> Either Exception Mementry
 evalExpEither exp = runReaderT (evalStateT (evalExp' exp) DMap.empty) []
-
-execStmt :: Exp -> Either Exception (Mementry, Store)
-execStmt stmt = runReaderT (runStateT (evalExp' stmt) DMap.empty) []
-
-execStmtEnv :: Env -> Exp -> Either Exception (Mementry, Store)
-execStmtEnv env stmt = runReaderT (runStateT (evalExp' stmt) DMap.empty) env
-
-{- DECL -}
-footypes :: Type -> [Type] -- array consisting of only basic types
-footypes (IntT) = [IntT]
-footypes (BoolT) = [BoolT]
-footypes (FooBr tp) = [tp]
-footypes (FooT type1 type2) = (footypes type1) ++ (footypes type2)
-
-fooFromExpVars :: [Var] -> Exp -> Function
-fooFromExpVars [] exp = RawExp exp
-fooFromExpVars (x:xs) exp =  (ArgFun x) (fooFromExpVars xs exp)
-
-declareDecl' :: Decl -> StateT (Env, Store) (Either Exception)  ()
--- semicolon in decl
-declareDecl' (DScln decl1 decl2) = do
-    declareDecl' decl1
-    declareDecl' decl2
--- skip
-declareDecl' (DSkip)  = return ()
--- fun declaration
-declareDecl' (FooDcl varName tp) = do
-    (env, store) <- get
-    let newStore = DMap.insert (nextLoc store) (tp, Undefined) store
-    let newEnv = declareEnvVar varName (nextLoc store) env
-    modify (const (newEnv, newStore))
--- function definition
-declareDecl' (FooDfn fooname vars expr) = do
-    (tp, dt) <- getNonEmptyStateStoredVar fooname
-    loc <- getStateStoredLoc fooname
-    (env, store) <- get
-    let funEnv = Foo (env, fooFromExpVars vars expr)
-    TransSt.modify (\(env, store) -> (env, DMap.insert loc (tp, funEnv) store))
-
-declareDecl :: Decl -> Env -> Store -> Either Exception (Env, Store)
-declareDecl decl env store = execStateT (declareDecl' decl) (env, store)
-
-declareVars' :: Type -> [Var] -> StateT (Env, Store) (Either Exception)  ()
-declareVars' tp vars = do
-    let dcls = map (\(var, varType) -> declareDecl' (FooDcl var varType)) (zip vars (footypes tp))
-    sequence_ dcls
-
-declareVars :: Type -> [Var] -> Env -> Store -> Either Exception (Env, Store)
-declareVars tp vars env store = execStateT (declareVars' tp vars) (env, store)
-
-declareVar :: Type -> Var -> Env -> Store -> Either Exception (Env, Store) -- todo: bez overheadu w postaci tablicy
-declareVar tp var = declareVars tp [var]
-
-
-
-
-
-
 
 

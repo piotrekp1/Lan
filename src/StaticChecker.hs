@@ -33,80 +33,35 @@ assertTrue :: Bool -> String -> StoreWithEnv Type
 assertTrue predicate message = if not predicate then err message else return Ign -- todo upewnic się że to nie szkodzi
 
 
-getTypeLoc :: Loc -> StoreWithEnv Type
-getTypeLoc loc = do
-    (tp, val) <- getValue loc
-    return tp
-
-
-
-
-
-withDeclaredCheck :: Decl -> StoreWithEnv a -> StoreWithEnv a
-withDeclaredCheck decl prog = do
-    store <- get
-    env <- lift ask
-    let declareRes = checkDecl decl env store
-    case declareRes of
-        Left message -> err message
-        Right (newEnv, newStore) -> do
-            modify (const newStore)
-            local (const newEnv) prog
-
-
-
-checkExp' :: Exp -> StoreWithEnv Type
--- sama wartosc
-checkExp' (EVal (tp, dt)) = return tp
--- zlozenie wyrazen
-checkExp' (EOp op exp1 exp2) = do
-    type1 <- checkExp' exp1
-    type2 <- checkExp' exp2
-    evalInfixType op type1 type2
--- ewaluacja zmiennej
-checkExp' (EVar varName) = pure varName >>= getLoc >>= getTypeLoc
+checkDecl' :: Decl -> StoreWithEnv Env
+-- semicolon in decl
+checkDecl' (DScln decl1 decl2) = do
+    newEnv <- checkDecl' decl1
+    local (const newEnv) $ checkDecl' decl2
 -- skip
-checkExp' (Skip) = return Ign
--- overwriting a variable
-checkExp' (SAsgn varName exp) = do
-    loc <- getLoc varName
-    res_tp <- checkExp' exp
-    tp <- getTypeLoc loc -- checks if variable is allocated
-    assertTrue (res_tp == tp) ("Different types in assignment in " ++ varName ++ ". " ++ (typeMismatch tp res_tp))
-    return res_tp
--- if
-checkExp' (SIfStmt bexp stmt1 stmt2) = do
-    env <- lift ask
-    cond_tp <- checkExp' bexp
-    assertTrue (cond_tp == BoolT) ("Used non-boolean expression in if or while condition. ")
-    tp1 <- checkExp' stmt1
-    tp2 <- checkExp' stmt2
-    assertTrue (tp1 == tp2) ("Expressions in if have different types. ")
-    return tp1
--- while loop
-checkExp' loop@(SWhile bexp stmt) = checkExp' (SIfStmt bexp stmt stmt)
--- Semicolon
-checkExp' (SScln stmt1 stmt2) = do
-    tp1 <- checkExp' stmt1
-    tp2 <- checkExp' stmt2
-    return $ if tp2 == Ign then tp1 else tp2
--- Begin block
-checkExp' (SBegin decl stmt) = withDeclaredCheck decl (checkExp' stmt)
--- Function call
-checkExp' (FooCall fooname args) = pure fooname >>= getLoc >>= getTypeLoc >>= checkFooCallType' fooname args
--- Function bind
-checkExp' (FooBind fooname args) = checkExp' (FooCall fooname args)
--- Lambda
-checkExp' (SLam (SLamCon var vartype fooexp)) = withDeclaredCheck (FooDcl var vartype) (do
-    fooexp_tp <- checkExp' fooexp
-    return $ FooT vartype fooexp_tp
-    )
--- lambda call
-checkExp' (LamCall lam@(SLamCon varname vartype exp) args) = do
-    lam_tp <- checkExp' $ SLam lam
-    checkFooCallType' "__ lambda __" args lam_tp
+checkDecl' (DSkip) = lift ask
+-- fun declaration
+checkDecl' (FooDcl varName tp) = declareVar varName tp
+-- function definition
+checkDecl' (FooDfn fooname vars expr) = do
+    tp <- getType fooname
+    got_tp <- footypeFromExpVars vars tp expr
+    assertTrue (got_tp == tp) $ "Function: " ++ fooname ++ " declared type doesn't match the defined type."
+    lift ask
 
 
+footypeFromExpVars :: [Var] -> Type -> Exp -> StoreWithEnv Type
+footypeFromExpVars (varName:varRest) (FooT from_tp to_tp) exp = do
+    newEnv <- declareVar varName from_tp
+    to_type_got <- local (const newEnv) (footypeFromExpVars varRest to_tp exp)
+    return $ FooT from_tp to_type_got
+footypeFromExpVars [] tp exp = checkExp' exp
+
+
+--assumes there is no FooT in array
+footypeFromArray :: [Type] -> Type
+footypeFromArray [t] = t
+footypeFromArray (t:rest) = FooT t (footypeFromArray rest)
 
 
 checkFooCallType' :: String -> [Exp] -> Type -> StoreWithEnv Type -- name is used only for a error message
@@ -123,65 +78,56 @@ checkFooCallType' fooname (firstarg:rest) footype = do
                            show footype
 
 
-checkDecl :: Decl -> Env -> Store -> Either Exception (Env, Store)
-checkDecl decl env store = execStateT (checkDecl' decl) (env, store)
-
-getStateStoredLoc :: String -> StateT (Env, Store) (Either Exception) Loc
-getStateStoredLoc fooname = do
-    (env, store) <- TransSt.get
-    case lookup fooname env of
-        Nothing -> lift . Left $ "definition before declaration of a function: " ++ fooname ++ ". "
-        Just loc -> return loc
+withDeclaredCheck :: Decl -> StoreWithEnv a -> StoreWithEnv a
+withDeclaredCheck decl prog = do
+    newEnv <- checkDecl' decl
+    local (const newEnv) prog
 
 
-getNonEmptyStateStoredVar :: String -> StateT (Env, Store) (Either Exception) (Mementry)
-getNonEmptyStateStoredVar fooname = do
-    loc <- getStateStoredLoc fooname
-    (env, store) <- TransSt.get
-    case DMap.lookup loc store of
-        Nothing -> lift . Left $ "Internal error, function in envrironment but not in memory, function: " ++ fooname
-        Just mementry -> return mementry
-
-
--- checks typing while declaring
-checkDecl' :: Decl -> StateT (Env, Store) (Either Exception)  ()
--- semicolon in decl
-checkDecl' (DScln decl1 decl2) = do
-    checkDecl' decl1
-    checkDecl' decl2
+checkExp' :: Exp -> StoreWithEnv Type
+-- sama wartosc
+checkExp' (EVal (tp, dt)) = return tp
+-- zlozenie wyrazen
+checkExp' (EOp op exp1 exp2) = do
+    type1 <- checkExp' exp1
+    type2 <- checkExp' exp2
+    evalInfixType op type1 type2
+-- ewaluacja zmiennej
+checkExp' (EVar varName) = getType varName
 -- skip
-checkDecl' (DSkip)  = return ()
--- fun declaration
-checkDecl' (FooDcl varName tp) = do
-    (env, store) <- get
-    let newStore = DMap.insert (nextLoc store) (tp, Undefined) store
-    let newEnv = declareEnvVar varName (nextLoc store) env
-    modify (const (newEnv, newStore))
--- function definition
-checkDecl' (FooDfn fooname vars expr) = do
-    (tp, dt) <- getNonEmptyStateStoredVar fooname
-    (env, store) <- TransSt.get
-    let mn = footypeFromExpVars vars tp expr
-    case execMonadWithEnvStore env store mn of
-        Left message -> lift . Left $ message
-        Right (got_type, store) -> if got_type /= tp then lift . Left $ "function types doesnt work"
-                                   else return ()
+checkExp' (Skip) = return Ign
+-- overwriting a variable
+checkExp' (SAsgn varName exp) = do
+    tp <- getType varName
+    res_tp <- checkExp' exp
+    assertTrue (res_tp == tp) ("Different types in assignment in " ++ varName ++ ". " ++ (typeMismatch tp res_tp))
+    return res_tp
+-- if
+checkExp' (SIfStmt bexp stmt1 stmt2) = do
+    cond_tp <- checkExp' bexp
+    assertTrue (cond_tp == BoolT) ("Used non-boolean expression in if or while condition. ")
+    tp1 <- checkExp' stmt1
+    tp2 <- checkExp' stmt2
+    assertTrue (tp1 == tp2) ("Expressions in if have different types. ")
+    return tp1
+-- while loop
+checkExp' loop@(SWhile bexp stmt) = checkExp' (SIfStmt bexp stmt stmt)
+-- Semicolon
+checkExp' (SScln stmt1 stmt2) = do
+    tp1 <- checkExp' stmt1
+    tp2 <- checkExp' stmt2
+    return $ if tp2 == Ign then tp1 else tp2
+-- Begin block
+checkExp' (SBegin decl stmt) = withDeclaredCheck decl (checkExp' stmt)
+-- Function call
+checkExp' (FooCall fooname args) = getType fooname >>= checkFooCallType' fooname args
+-- Function bind
+checkExp' (FooBind fooname args) = checkExp' (FooCall fooname args)
+-- Lambda
+checkExp' (SLam (SLamCon var vartype fooexp)) = withDeclaredCheck (FooDcl var vartype) (checkExp' fooexp >>= return . (FooT vartype))
+-- lambda call
+checkExp' (LamCall lam@(SLamCon varname vartype exp) args) = do
+    lam_tp <- checkExp' $ SLam lam
+    checkFooCallType' "__ lambda __" args lam_tp
 
 
-footypeFromExpVars :: [Var] -> Type -> Exp -> StoreWithEnv Type
-footypeFromExpVars (varName:varRest) (FooT from_tp to_tp) exp = do
-    store <- get
-    env <- ask
-    let newEnv = declareEnvVar varName (nextLoc store) env
-    let newStore = DMap.insert (nextLoc store) (from_tp, Undefined) store
-    modify (const newStore)
-   -- err $ show from_tp
-    to_type_got <- local (const newEnv) (footypeFromExpVars varRest to_tp exp)
-    return $ FooT from_tp to_type_got
-footypeFromExpVars [] tp exp = checkExp' exp
-
-
---assumes there is no FooT in array
-footypeFromArray :: [Type] -> Type
-footypeFromArray [t] = t
-footypeFromArray (t:rest) = FooT t (footypeFromArray rest)

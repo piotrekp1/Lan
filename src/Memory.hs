@@ -3,22 +3,29 @@ module Memory where
 import Datatypes
 import SemanticDatatypes
 import qualified Data.Map.Strict as DMap
+import Control.Monad.Reader
+import Control.Monad.State
 
-declareEnvVar :: Var -> Loc -> Env -> Env
-declareEnvVar var loc env = case lookup var env of
-    Nothing -> env ++ [(var, loc)]
-    Just val -> overwriteVar var loc env
+declareVar :: Var -> Type -> StoreWithEnv Env
+declareVar var tp = do
+    env <- lift ask
+    newLoc <- nextLoc
+    modify $ DMap.insert newLoc (tp, Undefined)
+    case lookup var env of
+        Nothing -> return $ env ++ [(var, newLoc)]
+        Just val -> overwriteVar var newLoc
 
 
-overwriteVar :: Var -> Loc -> Env -> Env
-overwriteVar var loc env = do
-    envSet@(var1, val1) <- (var, loc):env
-    if(var1 /= var) then return envSet else return (var, loc)
+overwriteVar :: Var -> Loc -> StoreWithEnv Env
+overwriteVar var loc = do
+    env <- ask
+    return [ if(var1 == var) then (var, loc) else envEl | envEl@(var1 ,loc1) <- env ]
 
+nextLoc :: StoreWithEnv Loc -- todo: find some better way to find nextLoc
+nextLoc = do
+    store <- get
+    return $ nextLocHelper 0 store
 
-
-nextLoc :: Store -> Loc
-nextLoc = nextLocHelper 0
 
 nextLocHelper :: Int -> Store -> Int
 nextLocHelper x mapObj = case DMap.lookup x mapObj of

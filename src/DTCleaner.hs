@@ -83,6 +83,7 @@ semPBexp2 (And bexp2_1 bexp2_2) = EOp OpAnd (semPBexp2 bexp2_1) (semPBexp2 bexp2
 semPBexp2 (BBrack bexp1) = semPBexp1 bexp1
 semPBexp2 (BVal bval) = EVal (BoolT, BoolD bval)
 semPBexp2 (PCmp pcmp) = semPCmp pcmp
+semPBexp2 (BPExp0 pexp0) = semPExp0 pexp0
 
 semPCmp :: PCmp -> Exp
 semPCmp (PCmpExp comp pexp0_1 pexp0_2) = EOp comp (semPExp0 pexp0_1) (semPExp0 pexp0_2)

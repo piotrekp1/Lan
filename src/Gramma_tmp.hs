@@ -109,8 +109,8 @@ BExp1 : BExp1 or BExp1           { Or $1 $3 }
       | BExp2                    { BExp2 $1 }
 
 BExp2 : BExp2 and BExp2          { And $1 $3 }
-      | '(' BExp1 ')'            { BBrack $2 }
       | PCmp                     { PCmp $1 }
+      | '(' PExp0 ')'            { BPExp0 $2 }
 
 PCmp  : PExp0 '==' PExp0           { PCmpExp OpEQ $1 $3 }
       | PExp0 '>' PExp0            { PCmpExp OpGT $1 $3 }
@@ -120,11 +120,6 @@ PCmp  : PExp0 '==' PExp0           { PCmpExp OpEQ $1 $3 }
 
 
 {
-{-
-
-showTokenType :: Token -> String
-showTokenType (TokenType str) = map (filter (/='"')) str
--}
 
 parseError :: [Token] -> a
 parseError list = error ("Parse error" ++ show list)

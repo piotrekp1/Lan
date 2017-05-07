@@ -19,30 +19,31 @@ getLoc varName = do
         Nothing -> err err_message
         Just loc -> return loc
 
-getValue :: Loc -> StoreWithEnv Mementry
-getValue loc = do
+getValue :: Var -> StoreWithEnv Mementry
+getValue varName = getLoc varName >>= \loc -> do
     store <- get
-    let err_message = "tried to get memory from not DECLARED variable but with set loc. "
+    let err_message = "tried to get memory from not DECLARED variable but with set loc. var: " ++ varName ++". "
     case DMap.lookup loc store of
          Nothing -> err err_message
          Just tp_dt -> return tp_dt
 
-getNonEmptyValue :: Loc -> StoreWithEnv Mementry
-getNonEmptyValue loc = do
-    res@(tp, dt) <- getValue loc
-    let err_message = "tried to get memory from not DEFINED variable. "
+
+getType :: Var -> StoreWithEnv Type
+getType varName = do
+    (tp, dt) <- getValue varName
+    return tp
+
+getNonEmptyValue :: Var -> StoreWithEnv Mementry
+getNonEmptyValue varName = do
+    res@(tp, dt) <- getValue varName
+    let err_message = "tried to get memory from not DEFINED variable. var: " ++ varName ++ ". "
     case dt of
         Undefined -> err err_message
         otherwise -> return res
 
 
-execMonadWithEnvStore :: Env -> Store -> StoreWithEnv a -> Either Exception (a, Store)
-execMonadWithEnvStore env store mn = runReaderT (runStateT mn store) env
-
-
-execStoreWithEnv ::  StoreWithEnv a -> Either Exception (a, Store)
-execStoreWithEnv mn = runReaderT (runStateT mn DMap.empty) []
-
+execStoreWithEnv :: StoreWithEnv a -> Either Exception (a, Store)
+execStoreWithEnv monad = runReaderT (runStateT monad DMap.empty) []
 
 showStore :: Store -> IO()
 showStore = showStoreHelper 0 0

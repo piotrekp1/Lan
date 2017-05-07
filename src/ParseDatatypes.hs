@@ -95,6 +95,7 @@ data BExp2
     | BBrack BExp1
     | PCmp PCmp
     | BVal Bool
+    | BPExp0 PExp0
     deriving Show
 
 data PCmp

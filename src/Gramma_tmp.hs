@@ -30,6 +30,7 @@ import Tokens
       '/'             { TokenDiv }
       '('             { TokenOB }
       ')'             { TokenCB }
+      ','             { TokenComma }
       and             { TokenAnd }
       or              { TokenOr }
       '=='            { TokenCmp }
@@ -43,11 +44,18 @@ import Tokens
       ':='            { TokenDfn }
       bind            { TokenBind }
       '\\'             { TokenBackslash }
+      '_'              { TokenDeclSep }
+      '[|'              { TokenArrDefOB }
+      '|]'              { TokenArrDefCB }
+      '[:'              { TokenArrAsgnOB }
+      ':]'              { TokenArrAsgnCB }
+      '['               { TokenArrayOB }
+      ']'               { TokenArrayCB }
 %%
 
 
 
-PBlock : PDecl  PSntnc             { PBegin $1 $2 }
+PBlock : PDecl '_' PSntnc             { PBegin $1 $3 }
       | PDecl                      { PDecl $1 }
       | PSntnc                     { PSntnc $1 }
 
@@ -56,21 +64,20 @@ PSntnc :                           { PSkip }
       | PExp0                      { PExp0 $1 }
 
 PExp0 : var '=' PExp0             { PAsgn $1 $3 }
+      | var PAsgnIndexes '=' PExp0 { PArrAsgn $1 $2 $4}
       | if PExp0 then PExp0 else PExp0 { PIfStmt $2 $4 $6 }
       | while PExp0 ':' PExp0     { PWhile $2 $4 }
-      | PExp                      { PExp $1 }
-      | '{' PSntnc '}'            { SntBrack $2 }
+      | '{' PBlock '}'            { BlockBrack $2 }
+      | Exp1                      { Exp1 $1 }
       | BExp1                     { BExp1 $1 }
 
-PExp  : let var '=' PExp in PExp { Let $2 $4 $6 }
-      | Exp1                    { Exp1 $1 }
 
 Exp1  : Exp1 '+' Exp1           { E1Op OpAdd $1 $3 }
       | Exp1 '-' Exp1           { E1Op OpSub $1 $3 }
       | Term                    { Term $1 }
 
-Term  : Term '*' PExpFoo         { TOp OpMul $1 $3 }
-      | Term '/' PExpFoo         { TOp OpDiv $1 $3 }
+Term  : Term '*' Term            { TOp OpMul $1 $3 }
+      | Term '/' Term            { TOp OpDiv $1 $3 }
       | PExpFoo                  { PExpFoo $1 }
 
 
@@ -83,12 +90,21 @@ PExpFoo : var PFooArgs             { PFooCall $1 $2 }
 Factor : '(' PExp0 ')'              { Brack $2 }
       | Value                       { Value $1 }
       | var                        { Var $1 }
+      | PExp0 '[' PExp0 ']'         { ArrElCall $1 $3 }
       | Lambda                      { Lambda $1 }
 
 Lambda : '\\' var '::' PFooType arrow PExp0 { PLam $2 $4 $6}
 
 Value : int                         { IntP $1 }
       | bool                        { BoolP $1 }
+      | '[|' ArrData '|]'             { ArrayP $2 }
+      | '[|' '|]'                     { ArrayP ArrNothing }
+
+ArrData : PExp0                     { ArrEl $1 }
+      | PExp0 ',' ArrData          { ArrEls $1 $3 }
+
+PAsgnIndexes : '[:' PExp0 ':]'          { PSngInd $2 }
+      | '[:' PExp0 ':]' PAsgnIndexes   { PMltInd $2 $4 }
 
 PFooArgs : Factor                  { PSngArg $1 }
       | Factor PFooArgs            { PMltArgs $1 $2 }
@@ -104,6 +120,7 @@ PFooArgNames : var                 { PVarName $1 }
 PFooType : PFooType arrow PFooType { PMltType $1 $3 }
       | type                     { PType  $1 }
       | '(' PFooType ')'         { PTypeBrack $2 }
+      | '[' PFooType ']'         { PTypeArray $2 }
 
 BExp1 : BExp1 or BExp1           { Or $1 $3 }
       | BExp2                    { BExp2 $1 }

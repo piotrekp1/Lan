@@ -42,10 +42,8 @@ evalInfix op arg1 arg2 = err $ "Internal error: didn't fit any expected pattern"
 
 {- DECL -}
 footypes :: Type -> [Type] -- array consisting of only basic types
-footypes (IntT) = [IntT]
-footypes (BoolT) = [BoolT]
-footypes (FooBr tp) = [tp]
 footypes (FooT type1 type2) = (footypes type1) ++ (footypes type2)
+footypes tp = [tp]
 
 fooFromExpVars :: [Var] -> Exp -> Function
 fooFromExpVars [] exp = RawExp exp
@@ -128,6 +126,12 @@ evalExp' (EOp op exp1 exp2) = do
     res1 <- evalExp' exp1
     res2 <- evalExp' exp2
     evalInfix op res1 res2
+-- array inplace
+evalExp' (EArrDef []) = return (Array Any, DataArray [] )
+evalExp' (EArrDef (fst_exp:rest_exps)) = do
+    (fst_tp, fst_el) <- evalExp' fst_exp
+    (Array rest_tp, (DataArray rest_arr)) <- evalExp' $ EArrDef rest_exps
+    return (Array fst_tp, DataArray (fst_el:rest_arr))
 -- ewaluacja zmiennej
 evalExp' (EVar varName) = getNonEmptyValue varName >>= evalFooCallExps [] -- todo move everything to a foo call?
 -- skip
@@ -135,10 +139,19 @@ evalExp' Skip = return $ (Ign, Undefined)
 -- overwriting a variable
 evalExp' (SAsgn varName exp) = do
     loc <- getLoc varName
-    (tp, val) <- getValue varName
+    tp <- getType varName
     res@(res_tp, res_val) <- evalExp' exp
-    modify (DMap.insert loc (tp, res_val))
-    return res
+    modify (DMap.insert loc (tp, res_val)) -- tp, not res_tp because of assigning empty array
+    return (tp, res_val)
+-- assign to an array
+evalExp' (SArrAsgn varName ind_exps exp) = do
+    loc <- getLoc varName
+    (tp, arr_val) <- getValue varName
+    res@(res_tp, res_val) <- evalExp' exp
+    inds <- expsToInts ind_exps
+    new_val <- replaceNestedEl arr_val inds res_val
+    modify (DMap.insert loc (tp, new_val))
+    return (tp, new_val)
 -- if
 evalExp' (SIfStmt bexp stmt1 stmt2) = do
     env <- lift ask
@@ -156,7 +169,7 @@ evalExp' (SScln stmt1 stmt2) = do
 -- Begin block
 evalExp' (SBegin decl stmt) = withDeclared decl (evalExp' stmt)
 -- Function call
-evalExp' (FooCall fooname argexps) = getValue fooname >>= callFunction argexps
+evalExp' (FooCall fooname argexps) = getValue fooname >>=  callFunction argexps
 -- Function bind
 evalExp' (FooBind fooname argexps) = getValue fooname >>= evalFooCallExps argexps
 -- lambda
@@ -167,6 +180,11 @@ evalExp' lambda@(SLam (SLamCon var vartype fooexp)) = do
     return (tp, funEnv)
 -- lambda call
 evalExp' (LamCall lam argexps) = evalExp' (SLam lam) >>= callFunction argexps
+-- array call
+evalExp' (EArrCall arrexp argexp) = do
+    arr <- evalExp' arrexp
+    (IntT, Num ind) <- evalExp' argexp
+    getArrayEl arr ind
 
 execStmt :: Exp -> Either Exception (Mementry, Store)
 execStmt stmt = execStoreWithEnv $ evalExp' stmt
@@ -175,3 +193,10 @@ evalExpEither :: Exp -> Either Exception Mementry
 evalExpEither exp = runReaderT (evalStateT (evalExp' exp) DMap.empty) []
 
 
+-- assumes that exps returns an int
+expsToInts :: [Exp] -> StoreWithEnv [Int]
+expsToInts [] = return []
+expsToInts (exp:restexp) = do
+    results <- expsToInts restexp
+    (IntT, Num val) <- evalExp' exp
+    return $ val:results

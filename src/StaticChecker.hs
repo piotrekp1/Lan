@@ -29,10 +29,6 @@ evalInfixType op tp1 tp2 = err $ ("Mismatched types in infix operation " ++ show
 typeMismatch :: Type -> Type -> String
 typeMismatch expected got = "Expected: " ++ show expected ++ ", Got: " ++ show got ++ ". "
 
-assertTrue :: Bool -> String -> StoreWithEnv Type
-assertTrue predicate message = if not predicate then err message else return Ign -- todo upewnic się że to nie szkodzi
-
-
 checkDecl' :: Decl -> StoreWithEnv Env
 -- semicolon in decl
 checkDecl' (DScln decl1 decl2) = do
@@ -75,7 +71,7 @@ checkFooCallType' fooname (firstarg:rest) footype = do
                  " - " ++ (typeMismatch from_tp firstarg_tp)
             checkFooCallType' fooname rest to_tp
         otherwise -> err $ "Too many parameters in a call, variable: " ++ fooname ++ " - but with parameters given. " ++
-                           show footype
+                           show footype ++ "arg: " ++ show firstarg
 
 
 withDeclaredCheck :: Decl -> StoreWithEnv a -> StoreWithEnv a
@@ -83,6 +79,16 @@ withDeclaredCheck decl prog = do
     newEnv <- checkDecl' decl
     local (const newEnv) prog
 
+
+checkTypeCalled :: [Exp] -> Type -> StoreWithEnv Type
+checkTypeCalled [] tp = return tp
+checkTypeCalled (exp_ind:rest) tp = do
+    ind_tp <- checkExp' exp_ind
+    case tp of
+        Array in_tp -> case ind_tp of
+            IntT -> checkTypeCalled rest in_tp
+            otherwise -> err "arrays must be indexed with integers."
+        otherwise -> err "a array call to something that is not an array"
 
 checkExp' :: Exp -> StoreWithEnv Type
 -- sama wartosc
@@ -92,6 +98,13 @@ checkExp' (EOp op exp1 exp2) = do
     type1 <- checkExp' exp1
     type2 <- checkExp' exp2
     evalInfixType op type1 type2
+-- array inplace
+checkExp' (EArrDef []) = return $ Array Any
+checkExp' (EArrDef (fst_exp:rest_exps)) = do
+    fst_tp <- checkExp' fst_exp
+    (Array rest_tp) <- checkExp' $ EArrDef rest_exps
+    assertTrue (fst_tp == rest_tp) ("not consistent types in an array")
+    return $ Array fst_tp
 -- ewaluacja zmiennej
 checkExp' (EVar varName) = getType varName
 -- skip
@@ -102,13 +115,19 @@ checkExp' (SAsgn varName exp) = do
     res_tp <- checkExp' exp
     assertTrue (res_tp == tp) ("Different types in assignment in " ++ varName ++ ". " ++ (typeMismatch tp res_tp))
     return res_tp
+-- overwriting array el
+checkExp' (SArrAsgn varName ind_exps exp) = do
+    tp <- getType varName >>= checkTypeCalled ind_exps
+    res_tp <- checkExp' exp
+    assertTrue (tp == res_tp) ("Different types in assignment in " ++ varName ++ ". " ++ (typeMismatch tp res_tp))
+    return res_tp
 -- if
 checkExp' (SIfStmt bexp stmt1 stmt2) = do
     cond_tp <- checkExp' bexp
-    assertTrue (cond_tp == BoolT) ("Used non-boolean expression in if or while condition. ")
+    assertTrue (cond_tp == BoolT) ("Used non-boolean expression in \"if\" or \"while\" condition. ")
     tp1 <- checkExp' stmt1
     tp2 <- checkExp' stmt2
-    assertTrue (tp1 == tp2) ("Expressions in if have different types. ")
+    assertTrue (tp1 == tp2) ("Expressions in \"if\" have different types. ")
     return tp1
 -- while loop
 checkExp' loop@(SWhile bexp stmt) = checkExp' (SIfStmt bexp stmt stmt)
@@ -129,5 +148,12 @@ checkExp' (SLam (SLamCon var vartype fooexp)) = withDeclaredCheck (FooDcl var va
 checkExp' (LamCall lam@(SLamCon varname vartype exp) args) = do
     lam_tp <- checkExp' $ SLam lam
     checkFooCallType' "__ lambda __" args lam_tp
-
-
+-- array call
+checkExp' (EArrCall arrexp argexp) = do
+    arrType <- checkExp' arrexp
+    indType <- checkExp' argexp
+    case arrType of
+        Array tp -> do
+            assertTrue (indType == IntT) "Arrays must be indexed with integers."
+            return tp
+        otherwise -> err "tried to called something that is not an array."

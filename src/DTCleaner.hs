@@ -13,16 +13,12 @@ getType "Int" = IntT
 getType "Bool" = BoolT
 getType other = error ("getType: " ++ other ++ show(other == "\"Int\""))
 
-semPExp :: PExp -> Exp
-semPExp (Let str pexp1 pexp2) = ELet str (semPExp pexp1) (semPExp pexp2)
-semPExp (Exp1 pexp) = semExp1 pexp
-
 semExp1 :: Exp1 -> Exp
 semExp1 (E1Op op exp1_1 exp1_2) = EOp op (semExp1 exp1_1) (semExp1 exp1_2)
 semExp1 (Term term) = semTerm term
 
 semTerm :: Term -> Exp
-semTerm (TOp op term pexpfoo) = EOp op (semTerm term) (semPExpFoo pexpfoo)
+semTerm (TOp op term pexpfoo) = EOp op (semTerm term) (semTerm term)
 semTerm (PExpFoo pexpfoo) = semPExpFoo pexpfoo
 
 semFact :: Factor -> Exp
@@ -31,6 +27,7 @@ semFact (Var varName) = EVar varName
 semFact (Brack pexp0) = semPExp0 pexp0
 semFact (FFooCall pexpfoo) = semPExpFoo pexpfoo
 semFact (Lambda lam) = semLambdaExp lam
+semFact (ArrElCall pexp0_1 pexp0_2) = EArrCall (semPExp0 pexp0_1) (semPExp0 pexp0_2)
 
 semLambda :: Lambda -> SLam
 semLambda (PLam var vartype fooexp) = SLamCon var (semPFooType vartype) (semPExp0 fooexp)
@@ -41,6 +38,12 @@ semLambdaExp synLambda = SLam $ semLambda synLambda
 semVal :: Value -> Exp
 semVal (IntP a) = EVal $ (IntT, Num a)
 semVal (BoolP a) = EVal $ (BoolT, BoolD a)
+semVal (ArrayP arrdata) = EArrDef $ semArrData arrdata
+
+semArrData :: ArrData -> [Exp]
+semArrData (ArrNothing) = []
+semArrData (ArrEl pexp0) = [semPExp0 pexp0]
+semArrData (ArrEls pexp0 arrdata) = (semPExp0 pexp0):(semArrData arrdata)
 
 semPBlock :: PBlock -> Exp
 semPBlock (PBegin pdecl psntnc) = SBegin (semPDecl pdecl) (semPSntnc psntnc)
@@ -55,11 +58,17 @@ semPSntnc (PExp0 pexp0) = semPExp0 pexp0
 
 semPExp0 :: PExp0 -> Exp
 semPExp0 (PAsgn var pexp0) = SAsgn var $ semPExp0 pexp0
+semPExp0 (PArrAsgn var pasgnInds pexp0) = SArrAsgn var (semAsgnInds pasgnInds) (semPExp0 pexp0)
 semPExp0 (PIfStmt pbexp pexp0_1 pexp0_2) = SIfStmt (semPExp0 pbexp) (semPExp0 pexp0_1) (semPExp0 pexp0_2)
 semPExp0 (PWhile pexp pexp0) = SWhile (semPExp0 pexp) (semPExp0 pexp0)
-semPExp0 (PExp pexp) = semPExp pexp
-semPExp0 (SntBrack psntnc) = semPSntnc psntnc
+semPExp0 (Exp1 exp1) = semExp1 exp1
+semPExp0 (BlockBrack pblock) = semPBlock pblock
 semPExp0 (BExp1 bexp1) = semPBexp1 bexp1
+
+
+semAsgnInds :: PAsgnIndexes -> [Exp]
+semAsgnInds (PSngInd pexp0) = [semPExp0 pexp0]
+semAsgnInds (PMltInd pexp0 pasgnInds) = (semPExp0 pexp0):(semAsgnInds pasgnInds)
 
 semPDecl :: PDecl -> Decl
 semPDecl (PDSkip) = DSkip
@@ -73,6 +82,7 @@ semPFooType :: PFooType -> Type
 semPFooType (PType type_str) = getType type_str
 semPFooType (PMltType pfootype1 pfootype2) = FooT (semPFooType pfootype1) (semPFooType pfootype2)
 semPFooType (PTypeBrack pfootype) = semPFooType pfootype
+semPFooType (PTypeArray pfootype) = Array $ semPFooType pfootype
 
 semPBexp1 :: BExp1 -> Exp
 semPBexp1 (Or bexp1_1 bexp1_2) = EOp OpOr (semPBexp1 bexp1_1) (semPBexp1 bexp1_2)

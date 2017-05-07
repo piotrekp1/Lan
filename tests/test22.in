@@ -1,3 +1,12 @@
-{
-    while 5 : 5 < 7;
-}
+let foo :: Int -> Int;
+let res :: Int;
+let i :: Int;
+foo x := {
+    let i :: Int;
+    _
+    i = 0;
+    while i < 2 * x : i = i + 1;
+};
+_
+i = 7;
+res = foo 7;

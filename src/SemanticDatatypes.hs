@@ -27,10 +27,20 @@ type EnvFunction = (Env, Function)
 data Type
     = IntT
     | BoolT
-    | FooBr Type
     | FooT Type Type
+    | Array Type
+    | Any
     | Ign -- type used to return from statements that shouldn't have ret value (e.g. print)
-    deriving Eq
+
+instance Eq Type where
+     IntT == IntT = True
+     BoolT == BoolT = True
+     FooT f1_tp1 f1_tp2 == FooT f2_tp1 f2_tp2 = f1_tp1 == f2_tp1 && f1_tp2 == f2_tp2
+     (Array tp1) == (Array tp2) = tp1 == tp2
+     Any == tp = True
+     tp == Any = True
+     Ign == Ign = True
+     tp1 == tp2 = False
 
 optype :: Op -> Type
 optype (OpAdd) = FooT IntT (FooT IntT IntT)
@@ -46,13 +56,14 @@ optype (OpGT) = FooT IntT (FooT IntT BoolT)
 instance Show Type where
     show (IntT) = "Int"
     show (BoolT) = "Bool"
-    show (FooBr tp) = "(" ++ show tp ++ ")"
     show (FooT tp1 tp2) = "(" ++ show tp1 ++ " -> " ++ show tp2 ++ ")"
     show (Ign) = "Ign"
+    show (Array tp) = "[" ++ show tp ++ "]"
 data Datatype
     = Num Int
     | BoolD Bool
     | Foo EnvFunction
+    | DataArray [Datatype]
     | Undefined
     deriving (Show)
 
@@ -60,10 +71,12 @@ data Datatype
 data Exp
     = EVal (Type, Datatype)
     | EOp Op Exp Exp
+    | EArrDef [Exp]
     | EVar Var
     | ELet Var Exp Exp
     | Skip
     | SAsgn Var Exp
+    | SArrAsgn Var [Exp] Exp
     | SScln Exp Exp
     | SIfStmt Exp Exp Exp
     | SWhile Exp Exp
@@ -72,6 +85,7 @@ data Exp
     | FooBind Var [Exp]
     | SLam SLam
     | LamCall SLam [Exp]
+    | EArrCall Exp Exp
     deriving (Show)
 
 data SLam

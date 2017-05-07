@@ -1,11 +1,6 @@
 module ParseDatatypes where
 import Datatypes
 
-data PExp
-      = Let String PExp PExp
-      | Exp1 Exp1
-      deriving Show
-
 data Exp1
       = E1Op Op Exp1 Exp1
       | Term Term
@@ -13,7 +8,7 @@ data Exp1
 
 data Term
       = PExpFoo PExpFoo
-      | TOp Op Term PExpFoo
+      | TOp Op Term Term
       deriving Show
 
 data Factor
@@ -22,6 +17,7 @@ data Factor
       | Brack PExp0
       | FFooCall PExpFoo
       | Lambda Lambda
+      | ArrElCall PExp0 PExp0
       deriving Show
 
 data Lambda
@@ -31,7 +27,14 @@ data Lambda
 data Value
      = IntP Int
      | BoolP Bool
+     | ArrayP ArrData
      deriving Show
+
+data ArrData
+    = ArrNothing
+    | ArrEl  PExp0
+    | ArrEls PExp0 ArrData
+    deriving Show
 
 data PBlock
     = PBegin PDecl PSntnc
@@ -54,10 +57,11 @@ data PExpFoo
 
 data PExp0
     = PAsgn Var PExp0
+    | PArrAsgn Var PAsgnIndexes PExp0
     | PIfStmt PExp0 PExp0 PExp0
     | PWhile PExp0 PExp0
-    | PExp PExp
-    | SntBrack PSntnc
+    | Exp1 Exp1
+    | BlockBrack PBlock
     | BExp1 BExp1
     deriving Show
 
@@ -65,6 +69,11 @@ data PFooArgs
     = PSngArg Factor
     | PMltArgs Factor PFooArgs
     | PEmptArgs
+    deriving Show
+
+data PAsgnIndexes
+    = PSngInd PExp0
+    | PMltInd PExp0 PAsgnIndexes
     deriving Show
 
 data PDecl
@@ -83,6 +92,7 @@ data PFooType
     = PType String
     | PMltType PFooType PFooType
     | PTypeBrack PFooType
+    | PTypeArray PFooType
     deriving Show
 
 data BExp1

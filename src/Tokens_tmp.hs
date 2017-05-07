@@ -39,10 +39,18 @@ tokens :-
    \;                          { \s -> TokenSep }
    \{                          { \s -> TokenLBracket }
    \}                          { \s -> TokenRBracket }
+   \[\|                        { \s -> TokenArrDefOB }
+   \|\]                        { \s -> TokenArrDefCB }
+   \[\:                        { \s -> TokenArrAsgnOB }
+   \:\]                        { \s -> TokenArrAsgnCB }
+   \[                          { \s -> TokenArrayOB }
+   \]                          { \s -> TokenArrayCB }
    \<                          { \s -> TokenLT }
    \>                          { \s -> TokenGT }
    \:\:                          { \s -> TokenDecl }
    \:                          { \s -> TokenTwoDots }
+   ","                           { \s -> TokenComma }
+   "_""_"*                      { \s -> TokenDeclSep }
 
 
 {
@@ -80,6 +88,14 @@ data Token
       | TokenDfn
       | TokenBind
       | TokenBackslash
+      | TokenDeclSep
+      | TokenArrayOB
+      | TokenArrayCB
+      | TokenArrDefOB
+      | TokenArrDefCB
+      | TokenArrAsgnOB
+      | TokenArrAsgnCB
+      | TokenComma
       deriving Show
 
 lanTokens = alexScanTokens

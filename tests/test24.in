@@ -1,0 +1,7 @@
+let arrfoo :: Int -> [Int];
+let i :: Int;
+let arr :: [Int];
+arrfoo x := [| 1, x, 3 |];
+_
+i = (arrfoo 5)[0];
+//arr = [|1, 2, 4 |];

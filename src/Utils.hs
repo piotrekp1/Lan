@@ -11,6 +11,9 @@ import Memory
 err :: String -> StoreWithEnv a
 err = lift . lift . Left
 
+assertTrue :: Bool -> String -> StoreWithEnv Type
+assertTrue predicate message = if not predicate then err message else return Ign -- todo upewnic się że to nie szkodzi
+
 getLoc :: Var -> StoreWithEnv Loc
 getLoc varName = do
     env <- lift ask
@@ -41,6 +44,19 @@ getNonEmptyValue varName = do
         Undefined -> err err_message
         otherwise -> return res
 
+-- assumes that element is an array
+getArrayEl :: Mementry -> Int -> StoreWithEnv Mementry
+getArrayEl (Array tp, (DataArray dt_arr)) ind = do
+    let arr_size = length dt_arr
+    assertTrue (ind < arr_size) ("index out of range, " ++
+                                "array size: " ++ show arr_size ++
+                                "index: " ++ show ind)
+    return $ (tp, dt_arr !! ind)
+getArrayEl mementry ind = err ("internal error: getArrayEl, mementry: " ++ show mementry ++
+                               "index: " ++ show ind)
+
+
+
 
 execStoreWithEnv :: StoreWithEnv a -> Either Exception (a, Store)
 execStoreWithEnv monad = runReaderT (runStateT monad DMap.empty) []
@@ -66,3 +82,18 @@ showState ((varName, varLoc):envrest) store = do
         Nothing -> putStrLn $ varName ++ ": Nothing"
     showState envrest store
 
+
+
+replaceEl :: [a] -> Int -> a ->  [a]
+replaceEl arr ind newEl = x ++ newEl:ys  where
+        (x,_:ys) = splitAt ind arr
+
+
+replaceNestedEl :: Datatype -> [Int] -> Datatype -> StoreWithEnv Datatype
+replaceNestedEl (DataArray arr) (ind:rest_ind) newEl = do
+    let len = length arr
+    assertTrue (ind < len) ("index out of range, ind: " ++ show ind ++ ", length: " ++ show len)
+    new_ith_el <- replaceNestedEl (arr !! ind) rest_ind newEl
+    return $ DataArray $ replaceEl arr ind new_ith_el
+replaceNestedEl dt [] newEl = return newEl
+replaceNestedEl dt inds newEl = err $ "internal error: " ++ show dt ++ "  " ++ show inds ++ "  " ++ show newEl

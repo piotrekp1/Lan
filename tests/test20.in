@@ -8,8 +8,8 @@ first_st foo := { i = 0; while not (foo i) : i = i + 1; };
 foo x := True;
 let div :: Int -> Int -> Bool;
 div x y := x / y * y == x;
-{
-       i = first_st ( \x :: Int -> (div x 2) and (div x 5));
+ ____
+i = first_st ( \x :: Int -> (div x 2) and (div x 5) and x > 10);
       // while not (first_st (\x :: Int -> x == 5)) : i = i+1;
 //       resint = sum 2 5;
 //       i = 0;
@@ -17,4 +17,4 @@ div x y := x / y * y == x;
 //       resint = first_st i;
 //      resint2 = (\x :: Int -> \y :: Int -> x + y) 2 5;
 //      resint2  = (\x :: Int -> \y :: Int -> x + y) 2 5;
-}  
+  

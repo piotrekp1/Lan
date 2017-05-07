@@ -1,0 +1,11 @@
+let foo :: Int -> Bool;
+let a :: Int;
+let arrfoo :: [Int -> Bool];
+let res :: Bool;
+_
+//arr2 = [| [| 1,2,3 |],[| 1,2 |] |];
+//arr2[:1:] = [| |];
+arrfoo = [| \x :: Int -> x / 2 * 2 == x, \x :: Int -> False |];
+foo = (arrfoo[1]);
+res = foo 5;
+//arrfoo = [| (\x :: Int -> (x /2 * 2 == x)), (\x :: Int -> x > 5) |]

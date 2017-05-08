@@ -57,6 +57,7 @@ data PExpFoo
 
 data PExp0
     = PAsgn Var PExp0
+    | PModAsgn Var String PExp0
     | PArrAsgn Var PAsgnIndexes PExp0
     | PIfStmt PExp0 PExp0 PExp0
     | PWhile PExp0 PExp0

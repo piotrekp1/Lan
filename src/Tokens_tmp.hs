@@ -27,7 +27,14 @@ tokens :-
    "\"                         { \s -> TokenBackslash }
    $digit+                    { \s -> TokenInt (read s)}
    \:\=                        { \s -> TokenDfn }
+   \+\=                         { \s -> TokenInPlace "Add" }
+   \-\=                         { \s -> TokenInPlace "Sub" }
+   \*\=                        { \s ->  TokenInPlace "Mul" }
+   \/\=                       { \s ->  TokenInPlace "Div"  }
+   \+\+                        { \s -> TokenPlusPlus }
+   \-\-                         { \s -> TokenMinusMinus }
    \-\>                        { \s -> TokenArrow }
+   \!\=                         { \s -> TokenNotEq }
    \=\=                         { \s -> TokenCmp }
    \=                          { \s -> TokenEq }
    \+                          { \s -> TokenPlus }
@@ -96,6 +103,10 @@ data Token
       | TokenArrAsgnOB
       | TokenArrAsgnCB
       | TokenComma
+      | TokenMinusMinus
+      | TokenPlusPlus
+      | TokenInPlace String
+      | TokenNotEq
       deriving Show
 
 lanTokens = alexScanTokens

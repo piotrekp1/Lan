@@ -23,6 +23,10 @@ import Tokens
       int             { TokenInt $$ }
       bool            { TokenBool $$ }
       var             { TokenVar $$ }
+      '++'            { TokenPlusPlus }
+      '- -'           { TokenMinusMinus }
+      'mod='            { TokenInPlace $$ }
+      '!='            { TokenNotEq }
       '='             { TokenEq }
       '+'             { TokenPlus }
       '-'             { TokenMinus }
@@ -64,7 +68,10 @@ PSntnc :                           { PSkip }
       | PExp0                      { PExp0 $1 }
 
 PExp0 : var '=' PExp0             { PAsgn $1 $3 }
-      | var PAsgnIndexes '=' PExp0 { PArrAsgn $1 $2 $4}
+      | var 'mod=' PExp0           { PModAsgn $1 $2 $3 }
+      | var PAsgnIndexes '=' PExp0 { PArrAsgn $1 $2 $4 }
+      | var '++'                   { PModAsgn $1 "Add" (expValue 1)}
+      | var '- -'                   { PModAsgn $1 "Sub" (expValue 1)}
       | if PExp0 then PExp0 else PExp0 { PIfStmt $2 $4 $6 }
       | while PExp0 ':' PExp0     { PWhile $2 $4 }
       | '{' PBlock '}'            { BlockBrack $2 }
@@ -137,6 +144,8 @@ PCmp  : PExp0 '==' PExp0           { PCmpExp OpEQ $1 $3 }
 
 
 {
+expValue :: Int -> PExp0
+expValue = Exp1 . Term . PExpFoo .  Factor . Value . IntP
 
 parseError :: [Token] -> a
 parseError list = error ("Parse error" ++ show list)

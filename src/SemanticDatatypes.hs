@@ -86,7 +86,13 @@ data Exp
     | SLam SLam
     | LamCall SLam [Exp]
     | EArrCall Exp Exp
+    | EPreDefFoo PreDefFoo [Exp]
     deriving (Show)
+
+data PreDefFoo -- todo: dodac semantykę
+    = Print
+    | Size
+    deriving Show
 
 data SLam
     = SLamCon Var Type Exp deriving Show

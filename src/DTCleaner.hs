@@ -18,7 +18,7 @@ semExp1 (E1Op op exp1_1 exp1_2) = EOp op (semExp1 exp1_1) (semExp1 exp1_2)
 semExp1 (Term term) = semTerm term
 
 semTerm :: Term -> Exp
-semTerm (TOp op term pexpfoo) = EOp op (semTerm term) (semTerm term)
+semTerm (TOp op term1 term2) = EOp op (semTerm term1) (semTerm term2)
 semTerm (PExpFoo pexpfoo) = semPExpFoo pexpfoo
 
 semFact :: Factor -> Exp
@@ -58,6 +58,7 @@ semPSntnc (PExp0 pexp0) = semPExp0 pexp0
 
 semPExp0 :: PExp0 -> Exp
 semPExp0 (PAsgn var pexp0) = SAsgn var $ semPExp0 pexp0
+semPExp0 (PModAsgn var opName pexp0) = SAsgn var (EOp op (EVar var) (semPExp0 pexp0)) where op = readOp opName
 semPExp0 (PArrAsgn var pasgnInds pexp0) = SArrAsgn var (semAsgnInds pasgnInds) (semPExp0 pexp0)
 semPExp0 (PIfStmt pbexp pexp0_1 pexp0_2) = SIfStmt (semPExp0 pbexp) (semPExp0 pexp0_1) (semPExp0 pexp0_2)
 semPExp0 (PWhile pexp pexp0) = SWhile (semPExp0 pexp) (semPExp0 pexp0)

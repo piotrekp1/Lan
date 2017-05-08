@@ -16,8 +16,12 @@ evalInfixType (OpEQ) (BoolT) (BoolT) = return BoolT
 evalInfixType (OpLT) (IntT) (IntT) = return BoolT
 evalInfixType (OpGT) (IntT) (IntT) = return BoolT
 evalInfixType (OpAdd) (IntT) (IntT) = return IntT
+evalInfixType (OpAdd) (Array tp1) (Array tp2) = do
+    assertTrue (tp1 == tp2) "tried to concat arrays of different types"
+    return $ Array tp1
 evalInfixType (OpSub) (IntT) (IntT) = return IntT
 evalInfixType (OpMul) (IntT) (IntT) = return IntT
+evalInfixType (OpMul) (Array tp) (IntT) = return $ Array tp
 evalInfixType (OpDiv) (IntT) (IntT) = return IntT
 evalInfixType (OpOr) (BoolT) (BoolT) = return BoolT
 evalInfixType (OpAnd) (BoolT) (BoolT) = return BoolT

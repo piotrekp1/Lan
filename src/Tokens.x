@@ -27,12 +27,12 @@ tokens :-
    "\"                         { \s -> TokenBackslash }
    $digit+                    { \s -> TokenInt (read s)}
    \:\=                        { \s -> TokenDfn }
-   \+\=                         { \s -> TokenInPlace "Add" }
-   \-\=                         { \s -> TokenInPlace "Sub" }
-   \*\=                        { \s ->  TokenInPlace "Mul" }
-   \/\=                       { \s ->  TokenInPlace "Div"  }
-   \+\+                        { \s -> TokenPlusPlus }
-   \-\-                         { \s -> TokenMinusMinus }
+   \+\=                         { \s -> TokenMod "Add" }
+   \-\=                         { \s -> TokenMod "Sub" }
+   \*\=                        { \s ->  TokenMod "Mul" }
+   \/\=                       { \s ->  TokenMod "Div"  }
+   \+\+                        { \s -> TokenModInPlace "Add" }
+   \-\-                         { \s -> TokenModInPlace "Sub"}
    \-\>                        { \s -> TokenArrow }
    \!\=                         { \s -> TokenNotEq }
    \=\=                         { \s -> TokenCmp }
@@ -46,10 +46,8 @@ tokens :-
    \;                          { \s -> TokenSep }
    \{                          { \s -> TokenLBracket }
    \}                          { \s -> TokenRBracket }
-   \[\|                        { \s -> TokenArrDefOB }
-   \|\]                        { \s -> TokenArrDefCB }
-   \[\:                        { \s -> TokenArrAsgnOB }
-   \:\]                        { \s -> TokenArrAsgnCB }
+   \[\:                        { \s -> TokenArrDefOB }
+   \:\]                        { \s -> TokenArrDefCB }
    \[                          { \s -> TokenArrayOB }
    \]                          { \s -> TokenArrayCB }
    \<                          { \s -> TokenLT }
@@ -100,12 +98,10 @@ data Token
       | TokenArrayCB
       | TokenArrDefOB
       | TokenArrDefCB
-      | TokenArrAsgnOB
-      | TokenArrAsgnCB
       | TokenComma
       | TokenMinusMinus
-      | TokenPlusPlus
-      | TokenInPlace String
+      | TokenModInPlace String
+      | TokenMod String
       | TokenNotEq
       deriving Show
 

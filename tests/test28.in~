@@ -1,0 +1,5 @@
+let a :: [Int];
+let res :: Int;
+_
+a = [| 1, 2, 3 |];
+res = a    [2];

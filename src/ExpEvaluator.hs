@@ -135,12 +135,12 @@ evalExp' (EArrDef (fst_exp:rest_exps)) = do
     (Array rest_tp, (DataArray rest_arr)) <- evalExp' $ EArrDef rest_exps
     return (Array fst_tp, DataArray (fst_el:rest_arr))
 -- ewaluacja zmiennej
-evalExp' (SMementry (Variable varName)) = getNonEmptyValue varName >>= evalFooCallExps [] -- todo move everything to a foo call?
-evalExp' (SMementry (ArrayEl varName [])) = evalExp' (SMementry (Variable varName))
-evalExp' (SMementry (ArrayEl varName ind_exps)) = do
+evalExp' (EMementry (Variable varName)) = getNonEmptyValue varName >>= evalFooCallExps [] -- todo move everything to a foo call?
+evalExp' (EMementry (ArrayEl varName [])) = evalExp' (EMementry (Variable varName))
+evalExp' (EMementry (ArrayEl varName ind_exps)) = do
     let call_args = init ind_exps
     let last_arg = last ind_exps
-    evalExp' (EArrCall (SMementry (ArrayEl varName call_args)) last_arg)
+    evalExp' (EArrCall (EMementry (ArrayEl varName call_args)) last_arg)
 -- skip
 evalExp' Skip = return $ (Ign, Undefined)
 -- overwriting a variable
@@ -185,13 +185,16 @@ evalExp' lambda@(SLam var vartype fooexp) = do
     tp <- checkExp' lambda
     let funEnv = Foo (env, fooFromExpVars [var] fooexp)
     return (tp, funEnv)
--- lambda call
-{-evalExp' (LamCall lam argexps) = evalExp' (SLam lam) >>= callFunction argexps-}
 -- array call
 evalExp' (EArrCall arrexp argexp) = do
     arr <- evalExp' arrexp
     (IntT, Num ind) <- evalExp' argexp
     getArrayEl arr ind
+-- in place modulator ( ++, --)
+evalExp' (OpMod eMemEntry op) = do
+    retval <- evalExp' (EMementry eMemEntry)
+    evalExp' (SAsgn eMemEntry (EOp op (EMementry eMemEntry) (EVal (IntT, Num 1))))
+    return retval
 
 execStmt :: Exp -> Either Exception (Mementry, Store)
 execStmt stmt = execStoreWithEnv $ evalExp' stmt

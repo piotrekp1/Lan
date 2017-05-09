@@ -61,15 +61,20 @@ data ArExp0
     deriving Show
 
 data ArExp1
-    = Ar1Op Op Factor ArExp1
+    = Ar1Op Op PFooCall ArExp1
+    | PFooCall PFooCall
+    deriving Show
+
+data PFooCall
+    = PFooCallArg PFooCall Factor
     | Factor Factor
     deriving Show
 
 data Factor
     = BrackPExp0 PExp0
     | MementryVal PMementry
+    | PModInPl PMementry String
     | PBlock PBlock
-    | PFooCall Factor Factor
     | PArrCall Factor PExp0
     | Value Value
     deriving Show

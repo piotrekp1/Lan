@@ -72,10 +72,10 @@ data Exp
     = EVal (Type, Datatype)
     | EOp Op Exp Exp
     | EArrDef [Exp]
-    | SMementry SMementry
+    | EMementry EMementry
     | ELet Var Exp Exp
     | Skip
-    | SAsgn SMementry Exp
+    | SAsgn EMementry Exp
     | SScln Exp Exp
     | SIfStmt Exp Exp Exp
     | SWhile Exp Exp
@@ -83,12 +83,12 @@ data Exp
     | FooCall Exp Exp
  -- | FooBind Var [Exp]
     | SLam Var Type Exp
---  | LamCall SLam [Exp]
+    | OpMod EMementry Op
     | EArrCall Exp Exp
     | EPreDefFoo PreDefFoo [Exp]
     deriving (Show)
 
-data SMementry
+data EMementry
     = Variable Var
     | ArrayEl Var [Exp]
     deriving Show

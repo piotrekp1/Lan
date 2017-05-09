@@ -46,10 +46,8 @@ tokens :-
    \;                          { \s -> TokenSep }
    \{                          { \s -> TokenLBracket }
    \}                          { \s -> TokenRBracket }
-   \[\|                        { \s -> TokenArrDefOB }
-   \|\]                        { \s -> TokenArrDefCB }
-   \[\:                        { \s -> TokenArrAsgnOB }
-   \:\]                        { \s -> TokenArrAsgnCB }
+   \[\:                        { \s -> TokenArrDefOB }
+   \:\]                        { \s -> TokenArrDefCB }
    \[                          { \s -> TokenArrayOB }
    \]                          { \s -> TokenArrayCB }
    \<                          { \s -> TokenLT }
@@ -100,8 +98,6 @@ data Token
       | TokenArrayCB
       | TokenArrDefOB
       | TokenArrDefCB
-      | TokenArrAsgnOB
-      | TokenArrAsgnCB
       | TokenComma
       | TokenMinusMinus
       | TokenModInPlace String

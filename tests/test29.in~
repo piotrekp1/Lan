@@ -1,0 +1,4 @@
+let a :: Int;
+let foo :: Int -> Int;
+foo x := 2*x;_
+a = foo a[2]

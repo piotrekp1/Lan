@@ -25,11 +25,11 @@ semPSntnc (PExp0 pexp0) = semPExp0 pexp0
 semPExp0 :: PExp0 -> Exp
 semPExp0 (PAsgn pmementry pexp0) = SAsgn (semPMementry pmementry) $ semPExp0 pexp0
 semPExp0 (PExp1 pexp1) = semPExp1 pexp1
-semPExp0 (PModAsgn pmementry opName pexp0) = SAsgn semMementry (EOp op (SMementry semMementry) (semPExp0 pexp0)) where
+semPExp0 (PModAsgn pmementry opName pexp0) = SAsgn semMementry (EOp op (EMementry semMementry) (semPExp0 pexp0)) where
                                             op = readOp opName
                                             semMementry = semPMementry pmementry
 
-semPMementry :: PMementry -> SMementry
+semPMementry :: PMementry -> EMementry
 semPMementry (PVar varName) = Variable varName
 semPMementry (PArrEntry varName parrInds) = ArrayEl varName (semPArrInds parrInds)
 
@@ -66,15 +66,19 @@ semArExp0 (Ar0Op op arExp1 arExp0) = EOp op (semArExp1 arExp1) (semArExp0 arExp0
 semArExp0 (ArExp1 arExp1) = semArExp1 arExp1
 
 semArExp1 :: ArExp1 -> Exp
-semArExp1 (Ar1Op op factor arExp1) = EOp op (semFactor factor) (semArExp1 arExp1)
-semArExp1 (Factor factor) = semFactor factor
+semArExp1 (Ar1Op op pfoocall arExp1) = EOp op (semPFooCall pfoocall) (semArExp1 arExp1)
+semArExp1 (PFooCall pfoocall) = semPFooCall pfoocall
+
+semPFooCall :: PFooCall -> Exp
+semPFooCall (PFooCallArg foocall factor) = FooCall (semPFooCall foocall) (semFactor factor)
+semPFooCall (Factor factor) = semFactor factor
 
 semFactor :: Factor -> Exp
 semFactor (BrackPExp0 pexp0) = semPExp0 pexp0
 semFactor (Value value) = semValue value
-semFactor (MementryVal pmementry) = SMementry $ semPMementry pmementry
+semFactor (MementryVal pmementry) = EMementry $ semPMementry pmementry
+semFactor (PModInPl pmementry opName) = OpMod (semPMementry pmementry) (readOp opName)
 semFactor (PBlock pblock) = semPBlock pblock
-semFactor (PFooCall foo_factor arg_factor) = FooCall (semFactor foo_factor) (semFactor arg_factor)
 semFactor (PArrCall arr_factor arg_pexp0) = EArrCall (semFactor arr_factor) (semPExp0 arg_pexp0)
 
 semValue :: Value -> Exp

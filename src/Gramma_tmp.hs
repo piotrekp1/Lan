@@ -48,10 +48,8 @@ import Tokens
       bind            { TokenBind }
       '\\'             { TokenBackslash }
       '_'              { TokenDeclSep }
-      '[|'              { TokenArrDefOB }
-      '|]'              { TokenArrDefCB }
-      '[:'              { TokenArrAsgnOB }
-      ':]'              { TokenArrAsgnCB }
+      '[:'              { TokenArrDefOB }
+      ':]'              { TokenArrDefCB }
       '['               { TokenArrayOB }
       ']'               { TokenArrayCB }
 %%
@@ -69,7 +67,6 @@ PSntnc :                              { PSkip }
 
 PExp0 : PMementry '=' PExp0           { PAsgn $1 $3 }
       | PMementry 'mod=' PExp0        { PModAsgn $1 $2 $3 }
-      | PMementry 'modInPl'           { PModAsgn $1 $2 (expValue 1)}
       | PExp1                         { PExp1 $1 }
 
 PMementry : var                       { PVar $1 }
@@ -96,14 +93,17 @@ ArExp0 : ArExp1 '+' ArExp0            { Ar0Op OpAdd $1 $3 }
       | ArExp1 '-' ArExp0             { Ar0Op OpSub $1 $3 }
       | ArExp1                        { ArExp1 $1 }
 
-ArExp1 : Factor '*' ArExp1            { Ar1Op OpMul $1 $3 }
-      | Factor '/' ArExp1             { Ar1Op OpDiv $1 $3 }
+ArExp1 : PFooCall '*' ArExp1            { Ar1Op OpMul $1 $3 }
+      | PFooCall '/' ArExp1             { Ar1Op OpDiv $1 $3 }
+      | PFooCall                        { PFooCall $1 }
+
+PFooCall : PFooCall Factor              { PFooCallArg $1 $2 }
       | Factor                        { Factor $1 }
 
 Factor : '(' PExp0 ')'                { BrackPExp0 $2 }
       | PMementry                     { MementryVal $1 }
+      | PMementry 'modInPl'           { PModInPl $1 $2}
       | '{' PBlock '}'                { PBlock $2 }
-      | Factor Factor                 { PFooCall $1 $2 }
       | Factor '[' PExp0 ']'          { PArrCall $1 $3 }
       | Value                         { Value $1 }
 
@@ -111,10 +111,10 @@ Value : int                           { IntP $1 }
       | bool                          { BoolP $1 }
       | '[:' ArrData ':]'             { ArrayP $2 }
       | '[:' ':]'                     { ArrayP ArrNothing }
-      | '\\' var '::' PFooType arrow PExp0 { PLambda $2 $4 $6}
+      | '\\' var '::' PFooType ':' PExp0 { PLambda $2 $4 $6}
 
-ArrData : PExp0                       { ArrEl $1 }
-      | PExp0 ',' ArrData             { ArrEls $1 $3 }
+ArrData : PExp0 ',' ArrData             { ArrEls $1 $3 }
+      | PExp0                          { ArrEl $1 }
 
 PFooType : PType arrow PFooType    { PMltType $1 $3 }
       | PType                         { PType $1 }
@@ -138,9 +138,6 @@ PFooArgNames : var                    { PVarName $1 }
 
 
 {
-expValue :: Int -> PExp0
-expValue = PExp1 . BExp0 . BExp1 . PCmp . PGrOrLess . ArExp0 . ArExp1 . Factor . Value . IntP
-
 parseError :: [Token] -> a
 parseError list = error ("Parse error" ++ show list)
 

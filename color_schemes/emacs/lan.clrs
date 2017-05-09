@@ -1,8 +1,9 @@
 (setq lan-keywords '("while" "let" "if" "then" "else" "and" "or" "bind") )
-(setq lan-types '("Int" "Bool"))
+(setq lan-types '("Int" "Bool" "Char"))
 (setq lan-constants '("True" "False"))
 
 (setq lan-comment-regexp "\\/\\/.*")
+(setq lan-char-regexp "'.'")
 (setq lan-keywords-regexp (regexp-opt lan-keywords 'words))
 (setq lan-types-regexp (regexp-opt lan-types 'words))
 (setq lan-constants-regexp (regexp-opt lan-constants 'words))
@@ -10,6 +11,7 @@
 
 (setq lan-highlights
       `(
+       (,lan-char-regexp . font-lock-comment-delimiter-face)
        (,lan-comment-regexp . font-lock-comment-face)
        (,lan-keywords-regexp . font-lock-keyword-face)
        (,lan-constants-regexp . font-lock-constant-face)

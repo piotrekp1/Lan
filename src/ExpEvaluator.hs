@@ -3,6 +3,7 @@ module ExpEvaluator where
 
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Writer
 import qualified Control.Monad.Trans.State as TransSt
 import Data.Maybe
 import Datatypes
@@ -33,6 +34,8 @@ evalInfix (OpLT)  ((IntT), (Num a)) ((IntT), (Num b)) = return (BoolT, BoolD $ a
 evalInfix (OpGT)  ((IntT), (Num a)) ((IntT), (Num b)) = return (BoolT, BoolD $ a > b)
 evalInfix (OpDiv) ((IntT), (Num a)) ((IntT), (Num 0)) = err "Tried to divide by 0"
 evalInfix (OpAdd) ((Array tp1), DataArray dt1) ((Array tp2), DataArray dt2) = return (Array tp1, DataArray (dt1 ++ dt2))
+evalInfix (OpAdd) ((Array CharT, DataArray dt1)) (IntT, Num n) = return(Array CharT, DataArray $ dt1 ++  (map CharD $ show n))
+evalInfix (OpAdd) (IntT, Num n) ((Array CharT, DataArray dt1)) = return(Array CharT, DataArray $ (map CharD $ show n) ++ dt1)
 evalInfix (OpMul) ((Array tp), DataArray dt) ((IntT), Num n) = return (Array tp, DataArray (concat $ replicate n dt))
 evalInfix op      ((IntT), (Num a)) ((IntT), (Num b)) = return (IntT, Num $ getIntOp op a b)
 evalInfix op ((BoolT), (BoolD a)) ((BoolT), (BoolD b)) = return (BoolT, BoolD $ getBoolOp op a b)
@@ -129,7 +132,7 @@ evalExp' (EOp op exp1 exp2) = do
     res2 <- evalExp' exp2
     evalInfix op res1 res2
 -- array inplace
-evalExp' (EArrDef []) = return (Array Any, DataArray [] )
+evalExp' (EArrDef []) = return (Array AnyT, DataArray [] )
 evalExp' (EArrDef (fst_exp:rest_exps)) = do
     (fst_tp, fst_el) <- evalExp' fst_exp
     (Array rest_tp, (DataArray rest_arr)) <- evalExp' $ EArrDef rest_exps
@@ -151,14 +154,14 @@ evalExp' (SAsgn (Variable varName) exp) = do
     modify (DMap.insert loc (tp, res_val)) -- tp, not res_tp because of assigning empty array
     return (tp, res_val)
 -- assign to an array
-evalExp' (SAsgn (ArrayEl varName ind_exps) exp) = do
+evalExp' (SAsgn mem@(ArrayEl varName ind_exps) exp) = do
     loc <- getLoc varName
     (tp, arr_val) <- getValue varName
     res@(res_tp, res_val) <- evalExp' exp
     inds <- expsToInts ind_exps
     new_val <- replaceNestedEl arr_val inds res_val
     modify (DMap.insert loc (tp, new_val))
-    return (tp, new_val)
+    evalExp' (EMementry mem) -- necessary to return value that was assigned with correct type (defends against "AnyT" type)
 -- if
 evalExp' (SIfStmt bexp stmt1 stmt2) = do
     env <- lift ask
@@ -195,13 +198,23 @@ evalExp' (OpMod eMemEntry op) = do
     retval <- evalExp' (EMementry eMemEntry)
     evalExp' (SAsgn eMemEntry (EOp op (EMementry eMemEntry) (EVal (IntT, Num 1))))
     return retval
+-- predef functions
+evalExp' (EPreDefFoo (Length) arr_exp) = do
+    (tp,DataArray arr) <- evalExp' arr_exp
+    return (IntT, Num $ length arr)
+evalExp' (EPreDefFoo (Print) str_exp) = do
+    (tp, DataArray dt_str) <- evalExp' str_exp
+    tell $ [dataArrayToStr dt_str]
+    return (Ign, Undefined)
+evalExp' (EPreDefFoo (ShowFoo) exp) = do
+    res@(res_tp, res_val) <- evalExp' exp
+    case res_tp of
+        (Array CharT) -> return res
+        otherwise -> showDatatype res_val
 
-execStmt :: Exp -> Either Exception (Mementry, Store)
+
+execStmt :: Exp -> Either Exception ((Mementry, Store), [String])
 execStmt stmt = execStoreWithEnv $ evalExp' stmt
-
-evalExpEither :: Exp -> Either Exception Mementry
-evalExpEither exp = runReaderT (evalStateT (evalExp' exp) DMap.empty) []
-
 
 -- assumes that exps returns an int
 expsToInts :: [Exp] -> StoreWithEnv [Int]

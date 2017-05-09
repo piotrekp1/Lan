@@ -3,6 +3,7 @@ import Datatypes
 import qualified Data.Map as DMap
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Writer
 
 type Loc = Int
 
@@ -11,7 +12,7 @@ type Store = DMap.Map Loc Mementry
 
 type Exception = String
 
-type StoreWithEnv = StateT Store (ReaderT Env (Either Exception))
+type StoreWithEnv = StateT Store (ReaderT Env (WriterT [String] (Either Exception)))
 type Mementry = (Type, Datatype)
 data Function
     = RawExp Exp
@@ -27,18 +28,20 @@ type EnvFunction = (Env, Function)
 data Type
     = IntT
     | BoolT
+    | CharT
     | FooT Type Type
     | Array Type
-    | Any
+    | AnyT
     | Ign -- type used to return from statements that shouldn't have ret value (e.g. print)
 
 instance Eq Type where
      IntT == IntT = True
      BoolT == BoolT = True
+     CharT == CharT = True
      FooT f1_tp1 f1_tp2 == FooT f2_tp1 f2_tp2 = f1_tp1 == f2_tp1 && f1_tp2 == f2_tp2
      (Array tp1) == (Array tp2) = tp1 == tp2
-     Any == tp = True
-     tp == Any = True
+     AnyT == tp = True
+     tp == AnyT = True
      Ign == Ign = True
      tp1 == tp2 = False
 
@@ -56,12 +59,14 @@ optype (OpGT) = FooT IntT (FooT IntT BoolT)
 instance Show Type where
     show (IntT) = "Int"
     show (BoolT) = "Bool"
+    show (CharT) = "Char"
     show (FooT tp1 tp2) = "(" ++ show tp1 ++ " -> " ++ show tp2 ++ ")"
     show (Ign) = "Ign"
     show (Array tp) = "[" ++ show tp ++ "]"
 data Datatype
     = Num Int
     | BoolD Bool
+    | CharD Char
     | Foo EnvFunction
     | DataArray [Datatype]
     | Undefined
@@ -85,7 +90,7 @@ data Exp
     | SLam Var Type Exp
     | OpMod EMementry Op
     | EArrCall Exp Exp
-    | EPreDefFoo PreDefFoo [Exp]
+    | EPreDefFoo PreDefFoo Exp
     deriving (Show)
 
 data EMementry
@@ -95,7 +100,8 @@ data EMementry
 
 data PreDefFoo -- todo: dodac semantykę
     = Print
-    | Size
+    | Length
+    | ShowFoo
     deriving Show
 
 data BExp =

@@ -6,8 +6,14 @@ import Datatypes
 getType :: String -> Type
 getType "Int" = IntT
 getType "Bool" = BoolT
+getType "Char" = CharT
 getType other = error ("getType: " ++ other ++ show(other == "\"Int\""))
 
+
+preDefFooFromName :: String -> PreDefFoo
+preDefFooFromName "print" = Print
+preDefFooFromName "length" = Length
+preDefFooFromName "show" = ShowFoo
 -------------
 
 semPBlock :: PBlock -> Exp
@@ -71,6 +77,7 @@ semArExp1 (PFooCall pfoocall) = semPFooCall pfoocall
 
 semPFooCall :: PFooCall -> Exp
 semPFooCall (PFooCallArg foocall factor) = FooCall (semPFooCall foocall) (semFactor factor)
+semPFooCall (PreDefFooCallArg fooname factor) = EPreDefFoo (preDefFooFromName fooname) (semFactor factor)
 semPFooCall (Factor factor) = semFactor factor
 
 semFactor :: Factor -> Exp
@@ -84,6 +91,8 @@ semFactor (PArrCall arr_factor arg_pexp0) = EArrCall (semFactor arr_factor) (sem
 semValue :: Value -> Exp
 semValue (IntP a) = EVal $ (IntT, Num a)
 semValue (BoolP a) = EVal $ (BoolT, BoolD a)
+semValue (CharP a) = EVal $ (CharT, CharD a)
+semValue (StringP str) = EVal $ (Array CharT, DataArray $ map CharD str)
 semValue (ArrayP arrdata) = EArrDef $ semArrData arrdata
 semValue (PLambda var vartype fooexp) = SLam var (semPFooType vartype) (semPExp0 fooexp)
 

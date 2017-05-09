@@ -19,6 +19,8 @@ evalInfixType (OpAdd) (IntT) (IntT) = return IntT
 evalInfixType (OpAdd) (Array tp1) (Array tp2) = do
     assertTrue (tp1 == tp2) "tried to concat arrays of different types"
     return $ Array tp1
+evalInfixType (OpAdd) (Array CharT) (IntT) = return $ Array CharT
+evalInfixType (OpAdd) (IntT) (Array CharT) = return $ Array CharT
 evalInfixType (OpSub) (IntT) (IntT) = return IntT
 evalInfixType (OpMul) (IntT) (IntT) = return IntT
 evalInfixType (OpMul) (Array tp) (IntT) = return $ Array tp
@@ -103,7 +105,7 @@ checkExp' (EOp op exp1 exp2) = do
     type2 <- checkExp' exp2
     evalInfixType op type1 type2
 -- array inplace
-checkExp' (EArrDef []) = return $ Array Any
+checkExp' (EArrDef []) = return $ Array AnyT
 checkExp' (EArrDef (fst_exp:rest_exps)) = do
     fst_tp <- checkExp' fst_exp
     (Array rest_tp) <- checkExp' $ EArrDef rest_exps
@@ -126,7 +128,7 @@ checkExp' (SAsgn (ArrayEl varName ind_exps) exp) = do
     tp <- checkTypeCalled ind_exps arr_tp
     res_tp <- checkExp' exp
     assertTrue (tp == res_tp) ("Different types in assignment in " ++ varName ++ ". " ++ (typeMismatch tp res_tp))
-    return arr_tp
+    return tp
 -- if
 checkExp' (SIfStmt bexp stmt1 stmt2) = do
     cond_tp <- checkExp' bexp
@@ -159,6 +161,24 @@ checkExp' (EArrCall arrexp argexp) = do
             assertTrue (indType == IntT) "Arrays must be indexed with integers."
             return tp
         otherwise -> err "tried to called something that is not an array."
+-- in place operator (++, --)
 checkExp' (OpMod eMemEntry op) = do
     checkExp' (SAsgn eMemEntry (EOp op (EMementry eMemEntry) (EVal (IntT, Num 1))))
     checkExp' (EMementry eMemEntry)
+-- predeffoo call
+checkExp' (EPreDefFoo (Length) arr_exp) = do
+    tp <- checkExp' arr_exp
+    case tp of
+        Array tp -> return IntT
+        otherwise -> err "Size needs an array as argument."
+checkExp' (EPreDefFoo (Print) str_exp) = do
+    tp <- checkExp' str_exp
+    case tp of
+        Array CharT -> return Ign
+        otherwise -> err "print takes string as argument"
+checkExp' (EPreDefFoo (ShowFoo) str_exp) = do
+     tp <- checkExp' str_exp
+     case tp of
+         FooT tp1 tp2 -> err "can't cast function to a string"
+         Ign -> err "can't cast Ign to a string"
+         otherwise -> return $ Array CharT

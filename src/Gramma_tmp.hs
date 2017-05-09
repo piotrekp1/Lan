@@ -22,9 +22,12 @@ import Tokens
       in              { TokenIn }
       int             { TokenInt $$ }
       bool            { TokenBool $$ }
+      char            { TokenChar $$ }
+      string          { TokenString $$ }
       var             { TokenVar $$ }
-      'modInPl'          { TokenModInPlace $$ }
-      'mod='            { TokenMod $$ }
+      'modInPl'       { TokenModInPlace $$ }
+      'mod='          { TokenMod $$ }
+      'preDefFoo'     { TokenPreDefFoo $$ }
       '!='            { TokenNotEq }
       '='             { TokenEq }
       '+'             { TokenPlus }
@@ -46,12 +49,13 @@ import Tokens
       arrow           { TokenArrow }
       ':='            { TokenDfn }
       bind            { TokenBind }
-      '\\'             { TokenBackslash }
-      '_'              { TokenDeclSep }
-      '[:'              { TokenArrDefOB }
-      ':]'              { TokenArrDefCB }
-      '['               { TokenArrayOB }
-      ']'               { TokenArrayCB }
+      '\\'            { TokenBackslash }
+      '_'             { TokenDeclSep }
+      '[:'            { TokenArrDefOB }
+      ':]'            { TokenArrDefCB }
+      '['             { TokenArrayOB }
+      ']'             { TokenArrayCB }
+
 %%
 
 
@@ -93,11 +97,12 @@ ArExp0 : ArExp1 '+' ArExp0            { Ar0Op OpAdd $1 $3 }
       | ArExp1 '-' ArExp0             { Ar0Op OpSub $1 $3 }
       | ArExp1                        { ArExp1 $1 }
 
-ArExp1 : PFooCall '*' ArExp1            { Ar1Op OpMul $1 $3 }
-      | PFooCall '/' ArExp1             { Ar1Op OpDiv $1 $3 }
-      | PFooCall                        { PFooCall $1 }
+ArExp1 : PFooCall '*' ArExp1          { Ar1Op OpMul $1 $3 }
+      | PFooCall '/' ArExp1           { Ar1Op OpDiv $1 $3 }
+      | PFooCall                      { PFooCall $1 }
 
-PFooCall : PFooCall Factor              { PFooCallArg $1 $2 }
+PFooCall : PFooCall Factor            { PFooCallArg $1 $2 }
+      | 'preDefFoo' Factor            { PreDefFooCallArg $1 $2 }
       | Factor                        { Factor $1 }
 
 Factor : '(' PExp0 ')'                { BrackPExp0 $2 }
@@ -109,6 +114,8 @@ Factor : '(' PExp0 ')'                { BrackPExp0 $2 }
 
 Value : int                           { IntP $1 }
       | bool                          { BoolP $1 }
+      | char                          { CharP $1 }
+      | string                        { StringP $1 }
       | '[:' ArrData ':]'             { ArrayP $2 }
       | '[:' ':]'                     { ArrayP ArrNothing }
       | '\\' var '::' PFooType ':' PExp0 { PLambda $2 $4 $6}

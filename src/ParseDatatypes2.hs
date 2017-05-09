@@ -67,6 +67,7 @@ data ArExp1
 
 data PFooCall
     = PFooCallArg PFooCall Factor
+    | PreDefFooCallArg String Factor
     | Factor Factor
     deriving Show
 
@@ -82,6 +83,8 @@ data Factor
 data Value
     = IntP Int
     | BoolP Bool
+    | CharP Char
+    | StringP String
     | ArrayP ArrData
     | PLambda Var PFooType PExp0
     deriving Show

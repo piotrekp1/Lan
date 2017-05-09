@@ -2,8 +2,6 @@ module Main where
 import ExpEvaluator
 import StaticChecker
 import Utils
---import AbstractSyn
---import EvalExp
 import Gramma
 import Tokens
 import DTCleaner
@@ -19,9 +17,12 @@ main = do
      case res of
          Left message -> do
              putStrLn ("Type Error: " ++ message)
-         Right (dt, store) ->  do
+         Right ((dt, store), messages) ->  do
+             mapM_ putStrLn messages
              let res2 = execStoreWithEnv (evalExp' abstractSyn)
              case res2 of
                  Left message -> putStrLn ("Runtime Error: " ++ message)
-                 Right (dt, store) -> showStore store
+                 Right ((dt, store), messages) -> do
+                     mapM_ putStrLn messages
+                     showStore store
      putStrLn $ " ---------- " ++ "\n\n"

@@ -4,12 +4,13 @@ import Datatypes
 import SemanticDatatypes
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Writer
 import qualified Data.Map as DMap
 import Memory
 
 
 err :: String -> StoreWithEnv a
-err = lift . lift . Left
+err = lift . lift . lift . Left
 
 assertTrue :: Bool -> String -> StoreWithEnv Type
 assertTrue predicate message = if not predicate then err message else return Ign -- todo upewnic się że to nie szkodzi
@@ -58,8 +59,8 @@ getArrayEl mementry ind = err ("internal error: getArrayEl, mementry: " ++ show 
 
 
 
-execStoreWithEnv :: StoreWithEnv a -> Either Exception (a, Store)
-execStoreWithEnv monad = runReaderT (runStateT monad DMap.empty) []
+execStoreWithEnv :: StoreWithEnv a -> Either Exception ((a, Store), [String])
+execStoreWithEnv monad = runWriterT $ runReaderT (runStateT monad DMap.empty) []
 
 showStore :: Store -> IO()
 showStore = showStoreHelper 0 0
@@ -97,3 +98,23 @@ replaceNestedEl (DataArray arr) (ind:rest_ind) newEl = do
     return $ DataArray $ replaceEl arr ind new_ith_el
 replaceNestedEl dt [] newEl = return newEl
 replaceNestedEl dt inds newEl = err $ "internal error: " ++ show dt ++ "  " ++ show inds ++ "  " ++ show newEl
+
+-- assumes that datatypes is of Array CharT
+dataArrayToStr :: [Datatype] -> String
+dataArrayToStr [] = []
+dataArrayToStr (el:dt_str) = case el of
+    CharD ch -> ch:(dataArrayToStr dt_str)
+
+showDataHelper :: Datatype -> String
+showDataHelper (Num n) = show n
+showDataHelper (BoolD b) =  show b
+showDataHelper (CharD c) = [c]
+showDataHelper (DataArray []) = "[]"
+showDataHelper (DataArray (fst:rest)) = "[" ++ foldl (\str1 -> \str2 -> str1 ++ ", " ++ str2) (showDataHelper fst) (map showDataHelper rest) ++ "]"
+
+
+
+showDatatype :: Datatype -> StoreWithEnv Mementry
+showDatatype (Undefined) = err "can't cast undefined variable to string"
+showDatatype (Foo foo) = err "can't cast function to a string"
+showDatatype dt = return $ (Array CharT, DataArray $ map CharD (showDataHelper dt))

@@ -1,0 +1,8 @@
+let a :: [Char];
+let b :: [Int];
+let c :: Int;
+let d :: [[Bool]];
+_
+d = [: [: True, False :] , [: True, True:] :];
+c = 5;
+print( show 'c');

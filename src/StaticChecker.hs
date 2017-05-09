@@ -64,17 +64,17 @@ footypeFromArray [t] = t
 footypeFromArray (t:rest) = FooT t (footypeFromArray rest)
 
 
-checkFooCallType' :: String -> [Exp] -> Type -> StoreWithEnv Type -- name is used only for a error message
-checkFooCallType' fooname [] footype = return footype
-checkFooCallType' fooname (firstarg:rest) footype = do
+checkFooCallType' :: [Exp] -> Type -> StoreWithEnv Type -- name is used only for a error message
+checkFooCallType' [] footype = return footype
+checkFooCallType' (firstarg:rest) footype = do
     case footype of
         FooT from_tp to_tp -> do
             firstarg_tp <- checkExp' firstarg
             assertTrue (from_tp == firstarg_tp) $
-                 "Wrong argument type in call of a function named: " ++ fooname ++
+                 "Wrong argument type in call of a function" ++
                  " - " ++ (typeMismatch from_tp firstarg_tp)
-            checkFooCallType' fooname rest to_tp
-        otherwise -> err $ "Too many parameters in a call, variable: " ++ fooname ++ " - but with parameters given. " ++
+            checkFooCallType' rest to_tp
+        otherwise -> err $ "Too many parameters in a call" ++ " - but with parameters given. " ++
                            show footype ++ "arg: " ++ show firstarg
 
 
@@ -110,17 +110,18 @@ checkExp' (EArrDef (fst_exp:rest_exps)) = do
     assertTrue (fst_tp == rest_tp) ("not consistent types in an array")
     return $ Array fst_tp
 -- ewaluacja zmiennej
-checkExp' (EVar varName) = getType varName
+checkExp' (SMementry (Variable varName)) = getType varName
+checkExp' (SMementry (ArrayEl varName ind_exps)) = getType varName >>= checkTypeCalled ind_exps
 -- skip
 checkExp' (Skip) = return Ign
 -- overwriting a variable
-checkExp' (SAsgn varName exp) = do
+checkExp' (SAsgn (Variable varName) exp) = do
     tp <- getType varName
     res_tp <- checkExp' exp
     assertTrue (res_tp == tp) ("Different types in assignment in " ++ varName ++ ". " ++ (typeMismatch tp res_tp))
     return res_tp
 -- overwriting array el
-checkExp' (SArrAsgn varName ind_exps exp) = do
+checkExp' (SAsgn (ArrayEl varName ind_exps) exp) = do
     tp <- getType varName >>= checkTypeCalled ind_exps
     res_tp <- checkExp' exp
     assertTrue (tp == res_tp) ("Different types in assignment in " ++ varName ++ ". " ++ (typeMismatch tp res_tp))
@@ -143,15 +144,15 @@ checkExp' (SScln stmt1 stmt2) = do
 -- Begin block
 checkExp' (SBegin decl stmt) = withDeclaredCheck decl (checkExp' stmt)
 -- Function call
-checkExp' (FooCall fooname args) = getType fooname >>= checkFooCallType' fooname args
+checkExp' (FooCall fooexp argexp) = checkExp' fooexp >>= checkFooCallType' [argexp]
 -- Function bind
-checkExp' (FooBind fooname args) = checkExp' (FooCall fooname args)
+{-checkExp' (FooBind fooname args) = checkExp' (FooCall fooname args)-}
 -- Lambda
-checkExp' (SLam (SLamCon var vartype fooexp)) = withDeclaredCheck (FooDcl var vartype) (checkExp' fooexp >>= return . (FooT vartype))
+checkExp' (SLam var vartype fooexp) = withDeclaredCheck (FooDcl var vartype) (checkExp' fooexp >>= return . (FooT vartype))
 -- lambda call
-checkExp' (LamCall lam@(SLamCon varname vartype exp) args) = do
+{-checkExp' (LamCall lam@(SLamCon varname vartype exp) args) = do
     lam_tp <- checkExp' $ SLam lam
-    checkFooCallType' "__ lambda __" args lam_tp
+    checkFooCallType' "__ lambda __" args lam_tp-}
 -- array call
 checkExp' (EArrCall arrexp argexp) = do
     arrType <- checkExp' arrexp

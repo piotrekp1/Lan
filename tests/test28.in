@@ -1,0 +1,11 @@
+let a :: [Int];
+let res :: Int;
+let foo :: [Int -> Int];
+let b :: Int -> Int;
+_
+
+//foo = [: \x :: Int -> x * 2; \x :: Int -> x * 3];
+b = (\x :: Int -> ( x * 3 ));
+a = [: 1, 2, 3 :];
+a[1] = 5 + 3;
+//res = foo[0] 3;

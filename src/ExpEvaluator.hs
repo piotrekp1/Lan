@@ -135,18 +135,23 @@ evalExp' (EArrDef (fst_exp:rest_exps)) = do
     (Array rest_tp, (DataArray rest_arr)) <- evalExp' $ EArrDef rest_exps
     return (Array fst_tp, DataArray (fst_el:rest_arr))
 -- ewaluacja zmiennej
-evalExp' (EVar varName) = getNonEmptyValue varName >>= evalFooCallExps [] -- todo move everything to a foo call?
+evalExp' (SMementry (Variable varName)) = getNonEmptyValue varName >>= evalFooCallExps [] -- todo move everything to a foo call?
+evalExp' (SMementry (ArrayEl varName [])) = evalExp' (SMementry (Variable varName))
+evalExp' (SMementry (ArrayEl varName ind_exps)) = do
+    let call_args = init ind_exps
+    let last_arg = last ind_exps
+    evalExp' (EArrCall (SMementry (ArrayEl varName call_args)) last_arg)
 -- skip
 evalExp' Skip = return $ (Ign, Undefined)
 -- overwriting a variable
-evalExp' (SAsgn varName exp) = do
+evalExp' (SAsgn (Variable varName) exp) = do
     loc <- getLoc varName
     tp <- getType varName
     res@(res_tp, res_val) <- evalExp' exp
     modify (DMap.insert loc (tp, res_val)) -- tp, not res_tp because of assigning empty array
     return (tp, res_val)
 -- assign to an array
-evalExp' (SArrAsgn varName ind_exps exp) = do
+evalExp' (SAsgn (ArrayEl varName ind_exps) exp) = do
     loc <- getLoc varName
     (tp, arr_val) <- getValue varName
     res@(res_tp, res_val) <- evalExp' exp
@@ -171,17 +176,17 @@ evalExp' (SScln stmt1 stmt2) = do
 -- Begin block
 evalExp' (SBegin decl stmt) = withDeclared decl (evalExp' stmt)
 -- Function call
-evalExp' (FooCall fooname argexps) = getValue fooname >>=  callFunction argexps
+evalExp' (FooCall fooexp argexp) = evalExp' fooexp >>=  callFunction [argexp]
 -- Function bind
-evalExp' (FooBind fooname argexps) = getValue fooname >>= evalFooCallExps argexps
+{-evalExp' (FooBind fooname argexps) = getValue fooname >>= evalFooCallExps argexps-}
 -- lambda
-evalExp' lambda@(SLam (SLamCon var vartype fooexp)) = do
+evalExp' lambda@(SLam var vartype fooexp) = do
     env <- lift ask
     tp <- checkExp' lambda
     let funEnv = Foo (env, fooFromExpVars [var] fooexp)
     return (tp, funEnv)
 -- lambda call
-evalExp' (LamCall lam argexps) = evalExp' (SLam lam) >>= callFunction argexps
+{-evalExp' (LamCall lam argexps) = evalExp' (SLam lam) >>= callFunction argexps-}
 -- array call
 evalExp' (EArrCall arrexp argexp) = do
     arr <- evalExp' arrexp

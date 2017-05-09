@@ -1,7 +1,7 @@
 {
 module Gramma  where
 import Data.Char
-import ParseDatatypes
+import ParseDatatypes2
 import Datatypes
 import Tokens
 }
@@ -23,9 +23,8 @@ import Tokens
       int             { TokenInt $$ }
       bool            { TokenBool $$ }
       var             { TokenVar $$ }
-      '++'            { TokenPlusPlus }
-      '- -'           { TokenMinusMinus }
-      'mod='            { TokenInPlace $$ }
+      'modInPl'          { TokenModInPlace $$ }
+      'mod='            { TokenMod $$ }
       '!='            { TokenNotEq }
       '='             { TokenEq }
       '+'             { TokenPlus }
@@ -59,93 +58,88 @@ import Tokens
 
 
 
+
 PBlock : PDecl '_' PSntnc             { PBegin $1 $3 }
-      | PDecl                      { PDecl $1 }
-      | PSntnc                     { PSntnc $1 }
+      | PDecl                         { PDecl $1 }
+      | PSntnc                        { PSntnc $1 }
 
-PSntnc :                           { PSkip }
-      | PSntnc separator PSntnc    { PScln $1 $3 }
-      | PExp0                      { PExp0 $1 }
+PSntnc :                              { PSkip }
+      | PSntnc separator PSntnc       { PScln $1 $3 }
+      | PExp0                         { PExp0 $1 }
 
-PExp0 : var '=' PExp0             { PAsgn $1 $3 }
-      | var 'mod=' PExp0           { PModAsgn $1 $2 $3 }
-      | var PAsgnIndexes '=' PExp0 { PArrAsgn $1 $2 $4 }
-      | var '++'                   { PModAsgn $1 "Add" (expValue 1)}
-      | var '- -'                   { PModAsgn $1 "Sub" (expValue 1)}
-      | if PExp0 then PExp0 else PExp0 { PIfStmt $2 $4 $6 }
-      | while PExp0 ':' PExp0     { PWhile $2 $4 }
-      | '{' PBlock '}'            { BlockBrack $2 }
-      | Exp1                      { Exp1 $1 }
-      | BExp1                     { BExp1 $1 }
+PExp0 : PMementry '=' PExp0           { PAsgn $1 $3 }
+      | PMementry 'mod=' PExp0        { PModAsgn $1 $2 $3 }
+      | PMementry 'modInPl'           { PModAsgn $1 $2 (expValue 1)}
+      | PExp1                         { PExp1 $1 }
 
+PMementry : var                       { PVar $1 }
+      | var PArrIndexes               { PArrEntry $1 $2}
 
-Exp1  : Exp1 '+' Exp1           { E1Op OpAdd $1 $3 }
-      | Exp1 '-' Exp1           { E1Op OpSub $1 $3 }
-      | Term                    { Term $1 }
+PExp1 : if BExp0 then BExp0 else BExp0 { PIf $2 $4 $6 }
+      | while BExp0 ':' BExp0         { PWhile $2 $4 }
+      | BExp0                         { BExp0 $1 }
 
-Term  : Term '*' Term            { TOp OpMul $1 $3 }
-      | Term '/' Term            { TOp OpDiv $1 $3 }
-      | PExpFoo                  { PExpFoo $1 }
+BExp0 : BExp1 or BExp0                { POr $1 $3 }
+      | BExp1                         { BExp1 $1 }
 
+BExp1 : PCmp and BExp1                { PAnd $1 $3 }
+      | PCmp                          { PCmp $1 }
 
-PExpFoo : var PFooArgs             { PFooCall $1 $2 }
-      | bind var PFooArgs          { PFooBind $2 $3 }
-      | bind var                   { PFooBind $2 PEmptArgs }
-      | Factor                     { Factor $1 }
-      | '(' Lambda ')' PFooArgs    { PLamCall $2 $4 }
+PCmp  : PGrOrLess '==' PCmp           { PCmpEq $1 $3 }
+      | PGrOrLess                     { PGrOrLess $1 }
 
-Factor : '(' PExp0 ')'              { Brack $2 }
-      | Value                       { Value $1 }
-      | var                        { Var $1 }
-      | PExp0 '[' PExp0 ']'         { ArrElCall $1 $3 }
-      | Lambda                      { Lambda $1 }
+PGrOrLess :  ArExp0 '>' ArExp0        { PCmpExp OpGT $1 $3 }
+      | ArExp0 '<' ArExp0             { PCmpExp OpLT $1 $3 }
+      | ArExp0                        { ArExp0 $1 }
 
-Lambda : '\\' var '::' PFooType arrow PExp0 { PLam $2 $4 $6}
+ArExp0 : ArExp1 '+' ArExp0            { Ar0Op OpAdd $1 $3 }
+      | ArExp1 '-' ArExp0             { Ar0Op OpSub $1 $3 }
+      | ArExp1                        { ArExp1 $1 }
 
-Value : int                         { IntP $1 }
-      | bool                        { BoolP $1 }
-      | '[|' ArrData '|]'             { ArrayP $2 }
-      | '[|' '|]'                     { ArrayP ArrNothing }
+ArExp1 : Factor '*' ArExp1            { Ar1Op OpMul $1 $3 }
+      | Factor '/' ArExp1             { Ar1Op OpDiv $1 $3 }
+      | Factor                        { Factor $1 }
 
-ArrData : PExp0                     { ArrEl $1 }
-      | PExp0 ',' ArrData          { ArrEls $1 $3 }
+Factor : '(' PExp0 ')'                { BrackPExp0 $2 }
+      | PMementry                     { MementryVal $1 }
+      | '{' PBlock '}'                { PBlock $2 }
+      | Factor Factor                 { PFooCall $1 $2 }
+      | Factor '[' PExp0 ']'          { PArrCall $1 $3 }
+      | Value                         { Value $1 }
 
-PAsgnIndexes : '[:' PExp0 ':]'          { PSngInd $2 }
-      | '[:' PExp0 ':]' PAsgnIndexes   { PMltInd $2 $4 }
+Value : int                           { IntP $1 }
+      | bool                          { BoolP $1 }
+      | '[:' ArrData ':]'             { ArrayP $2 }
+      | '[:' ':]'                     { ArrayP ArrNothing }
+      | '\\' var '::' PFooType arrow PExp0 { PLambda $2 $4 $6}
 
-PFooArgs : Factor                  { PSngArg $1 }
-      | Factor PFooArgs            { PMltArgs $1 $2 }
+ArrData : PExp0                       { ArrEl $1 }
+      | PExp0 ',' ArrData             { ArrEls $1 $3 }
 
-PDecl : let var '::' PFooType   { PSingDecl $2 $4}
-      | PDecl separator PDecl    { PDScln $1 $3 }
-      | PDecl separator          { PDScln $1 PDSkip }
-      | PFooArgNames ':=' PExp0 { PFooDef $1 $3 } -- todo: powoduje kolizję gramatyki
+PFooType : PType arrow PFooType    { PMltType $1 $3 }
+      | PType                         { PType $1 }
 
-PFooArgNames : var                 { PVarName $1 }
-      | var PFooArgNames           { PVarNames $1 $2}
+PType :  type                         { PRawType  $1 }
+      | '(' PFooType ')'              { PTypeBrack $2 }
+      | '[' PFooType ']'              { PTypeArray $2 }
 
-PFooType : PFooType arrow PFooType { PMltType $1 $3 }
-      | type                     { PType  $1 }
-      | '(' PFooType ')'         { PTypeBrack $2 }
-      | '[' PFooType ']'         { PTypeArray $2 }
+PArrIndexes : '[' PExp0 ']'           { PSngInd $2 }
+      | '[' PExp0 ']' PArrIndexes     { PMltInd $2 $4 }
 
-BExp1 : BExp1 or BExp1           { Or $1 $3 }
-      | BExp2                    { BExp2 $1 }
+-- ---------------------------- Decl
 
-BExp2 : BExp2 and BExp2          { And $1 $3 }
-      | PCmp                     { PCmp $1 }
-      | '(' PExp0 ')'            { BPExp0 $2 }
+PDecl :                               { PDSkip }
+      | let var '::' PFooType         { PSingDecl $2 $4}
+      | PDecl separator PDecl         { PDScln $1 $3 }
+      | PFooArgNames ':=' PExp0       { PFooDef $1 $3 } -- todo: powoduje kolizję gramatyki
 
-PCmp  : PExp0 '==' PExp0           { PCmpExp OpEQ $1 $3 }
-      | PExp0 '>' PExp0            { PCmpExp OpGT $1 $3 }
-      | PExp0 '<' PExp0            { PCmpExp OpLT $1 $3 }
-
-
+PFooArgNames : var                    { PVarName $1 }
+      | var PFooArgNames              { PVarNames $1 $2}
 
 
 {
 expValue :: Int -> PExp0
-expValue = Exp1 . Term . PExpFoo .  Factor . Value . IntP
+expValue = PExp1 . BExp0 . BExp1 . PCmp . PGrOrLess . ArExp0 . ArExp1 . Factor . Value . IntP
 
 parseError :: [Token] -> a
 parseError list = error ("Parse error" ++ show list)

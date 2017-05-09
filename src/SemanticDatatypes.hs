@@ -72,30 +72,31 @@ data Exp
     = EVal (Type, Datatype)
     | EOp Op Exp Exp
     | EArrDef [Exp]
-    | EVar Var
+    | SMementry SMementry
     | ELet Var Exp Exp
     | Skip
-    | SAsgn Var Exp
-    | SArrAsgn Var [Exp] Exp
+    | SAsgn SMementry Exp
     | SScln Exp Exp
     | SIfStmt Exp Exp Exp
     | SWhile Exp Exp
     | SBegin Decl Exp
-    | FooCall Var [Exp]
-    | FooBind Var [Exp]
-    | SLam SLam
-    | LamCall SLam [Exp]
+    | FooCall Exp Exp
+ -- | FooBind Var [Exp]
+    | SLam Var Type Exp
+--  | LamCall SLam [Exp]
     | EArrCall Exp Exp
     | EPreDefFoo PreDefFoo [Exp]
     deriving (Show)
+
+data SMementry
+    = Variable Var
+    | ArrayEl Var [Exp]
+    deriving Show
 
 data PreDefFoo -- todo: dodac semantykę
     = Print
     | Size
     deriving Show
-
-data SLam
-    = SLamCon Var Type Exp deriving Show
 
 data BExp =
      BEBool Bool

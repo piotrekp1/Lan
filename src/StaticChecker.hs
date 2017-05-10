@@ -16,11 +16,15 @@ evalInfixType (OpEQ) (BoolT) (BoolT) = return BoolT
 evalInfixType (OpLT) (IntT) (IntT) = return BoolT
 evalInfixType (OpGT) (IntT) (IntT) = return BoolT
 evalInfixType (OpAdd) (IntT) (IntT) = return IntT
+evalInfixType (OpAdd) (Array CharT) (tp) = do
+    assertTrue (showable tp) ("tried to concat not showable type: " ++ show tp ++ " with string.")
+    return $ Array CharT
+evalInfixType (OpAdd) (tp) (Array CharT) = evalInfixType (OpAdd) (Array CharT) tp
 evalInfixType (OpAdd) (Array tp1) (Array tp2) = do
-    assertTrue (tp1 == tp2) "tried to concat arrays of different types"
+    assertTrue (tp1 == tp2) ("tried to concat arrays of different types: " ++
+                             "type1: " ++ show tp1 ++
+                             ", type2: " ++ show tp2)
     return $ Array tp1
-evalInfixType (OpAdd) (Array CharT) (IntT) = return $ Array CharT
-evalInfixType (OpAdd) (IntT) (Array CharT) = return $ Array CharT
 evalInfixType (OpSub) (IntT) (IntT) = return IntT
 evalInfixType (OpMul) (IntT) (IntT) = return IntT
 evalInfixType (OpMul) (Array tp) (IntT) = return $ Array tp
@@ -145,7 +149,11 @@ checkExp' (SScln stmt1 stmt2) = do
     tp2 <- checkExp' stmt2
     return $ if tp2 == Ign then tp1 else tp2
 -- Begin block
-checkExp' (SBegin decl stmt) = withDeclaredCheck decl (checkExp' stmt)
+checkExp' (SEBegin exp1 exp2) = do
+    tp1 <- checkExp' exp1
+    tp2 <- checkExp' exp2
+    return $ if tp2 == Ign then tp1 else tp2
+checkExp' (SDBegin decl stmt) = withDeclaredCheck decl (checkExp' stmt)
 -- Function call
 checkExp' (FooCall fooexp argexp) = checkExp' fooexp >>= checkFooCallType' [argexp]
 -- Function bind

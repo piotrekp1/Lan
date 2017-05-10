@@ -61,13 +61,12 @@ import Tokens
 
 
 
-PBlock : PDecl '_' PSntnc             { PBegin $1 $3 }
-      | PDecl                         { PDecl $1 }
-      | PSntnc                        { PSntnc $1 }
+PBlock :                               { PSkip }
+      | PExp0                          { PExp0 $1 }
+      | PDecl                          { PDecl $1 }
+      | PExp0 separator PBlock         { PEBegin $1 $3 }
+      | PDecl separator PBlock         { PDBegin $1 $3 }
 
-PSntnc :                              { PSkip }
-      | PSntnc separator PSntnc       { PScln $1 $3 }
-      | PExp0                         { PExp0 $1 }
 
 PExp0 : PMementry '=' PExp0           { PAsgn $1 $3 }
       | PMementry 'mod=' PExp0        { PModAsgn $1 $2 $3 }
@@ -77,7 +76,7 @@ PMementry : var                       { PVar $1 }
       | var PArrIndexes               { PArrEntry $1 $2}
 
 PExp1 : if BExp0 then BExp0 else BExp0 { PIf $2 $4 $6 }
-      | while BExp0 ':' BExp0         { PWhile $2 $4 }
+      | while BExp0 ':' PExp1         { PWhile $2 $4 }
       | BExp0                         { BExp0 $1 }
 
 BExp0 : BExp1 or BExp0                { POr $1 $3 }
@@ -93,12 +92,12 @@ PGrOrLess :  ArExp0 '>' ArExp0        { PCmpExp OpGT $1 $3 }
       | ArExp0 '<' ArExp0             { PCmpExp OpLT $1 $3 }
       | ArExp0                        { ArExp0 $1 }
 
-ArExp0 : ArExp1 '+' ArExp0            { Ar0Op OpAdd $1 $3 }
-      | ArExp1 '-' ArExp0             { Ar0Op OpSub $1 $3 }
+ArExp0 : ArExp0 '+' ArExp1            { Ar0Op OpAdd $1 $3 }
+      | ArExp0 '-' ArExp1             { Ar0Op OpSub $1 $3 }
       | ArExp1                        { ArExp1 $1 }
 
-ArExp1 : PFooCall '*' ArExp1          { Ar1Op OpMul $1 $3 }
-      | PFooCall '/' ArExp1           { Ar1Op OpDiv $1 $3 }
+ArExp1 : ArExp1 '*' PFooCall           { Ar1Op OpMul $1 $3 }
+      | ArExp1 '/' PFooCall            { Ar1Op OpDiv $1 $3 }
       | PFooCall                      { PFooCall $1 }
 
 PFooCall : PFooCall Factor            { PFooCallArg $1 $2 }

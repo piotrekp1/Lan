@@ -113,6 +113,11 @@ showDataHelper (DataArray []) = "[]"
 showDataHelper (DataArray (fst:rest)) = "[" ++ foldl (\str1 -> \str2 -> str1 ++ ", " ++ str2) (showDataHelper fst) (map showDataHelper rest) ++ "]"
 
 
+showable :: Type -> Bool
+showable (Array tp) = showable tp
+showable (FooT tp1 tp2) = False
+showable (Ign) = False
+showable tp = True
 
 showDatatype :: Datatype -> StoreWithEnv Mementry
 showDatatype (Undefined) = err "can't cast undefined variable to string"

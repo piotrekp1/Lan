@@ -17,15 +17,11 @@ preDefFooFromName "show" = ShowFoo
 -------------
 
 semPBlock :: PBlock -> Exp
-semPBlock (PBegin pdecl psntnc) = SBegin (semPDecl pdecl) (semPSntnc psntnc)
-semPBlock (PDecl pdecl) = SBegin (semPDecl pdecl) Skip
-semPBlock (PSntnc psntnc) = semPSntnc psntnc
-
-
-semPSntnc :: PSntnc -> Exp
-semPSntnc (PSkip) = Skip
-semPSntnc (PScln psntnc1 psntnc2) = SScln (semPSntnc psntnc1) (semPSntnc psntnc2)
-semPSntnc (PExp0 pexp0) = semPExp0 pexp0
+semPBlock (PSkip) = Skip
+semPBlock (PExp0 pexp0) = semPExp0 pexp0
+semPBlock (PDecl pdecl) = SDBegin (semPDecl pdecl) Skip
+semPBlock (PEBegin pexp0 pblock) = SEBegin (semPExp0 pexp0) (semPBlock pblock)
+semPBlock (PDBegin pdecl pblock) = SDBegin (semPDecl pdecl) (semPBlock pblock)
 
 
 semPExp0 :: PExp0 -> Exp
@@ -47,7 +43,7 @@ semPArrInds (PMltInd pexp0 parrInds) = (semPExp0 pexp0):(semPArrInds parrInds)
 
 semPExp1 :: PExp1 -> Exp
 semPExp1 (PIf bexp0_1 bexp0_2 bexp0_3) = SIfStmt (semBExp0 bexp0_1) (semBExp0 bexp0_2) (semBExp0 bexp0_3)
-semPExp1 (PWhile bexp0_1 bexp0_2) = SWhile (semBExp0 bexp0_1) (semBExp0 bexp0_2)
+semPExp1 (PWhile bexp0_1 pexp1) = SWhile (semBExp0 bexp0_1) (semPExp1 pexp1)
 semPExp1 (BExp0 bexp0) = semBExp0 bexp0
 
 semBExp0 :: BExp0 -> Exp
@@ -68,11 +64,11 @@ semPGrOrLess (PCmpExp comp arExp0_1 arExp0_2 ) = EOp comp (semArExp0 arExp0_1) (
 semPGrOrLess (ArExp0 arExp0) = semArExp0 arExp0
 
 semArExp0 :: ArExp0 -> Exp
-semArExp0 (Ar0Op op arExp1 arExp0) = EOp op (semArExp1 arExp1) (semArExp0 arExp0)
+semArExp0 (Ar0Op op arExp0 arExp1) = EOp op (semArExp0 arExp0) (semArExp1 arExp1)
 semArExp0 (ArExp1 arExp1) = semArExp1 arExp1
 
 semArExp1 :: ArExp1 -> Exp
-semArExp1 (Ar1Op op pfoocall arExp1) = EOp op (semPFooCall pfoocall) (semArExp1 arExp1)
+semArExp1 (Ar1Op op arExp1 pfoocall ) = EOp op (semArExp1 arExp1) (semPFooCall pfoocall)
 semArExp1 (PFooCall pfoocall) = semPFooCall pfoocall
 
 semPFooCall :: PFooCall -> Exp

@@ -1,0 +1,65 @@
+let x :: Int;
+x = 8;
+let i :: Int;
+i = 0;
+let z :: Int -> Int;
+z x := {
+    i++;
+    x * i;
+};
+x = 1;
+let i2 :: Int;
+i2 = 0;
+//while {i2++; i2 < 5} : print (show ( x = z x ) );
+//print ("-------------------------------");
+
+
+let map :: (Int -> Int) -> [Int] -> [Int];
+map foo arr := {
+    let i :: Int;
+    i := 0;
+    while {i++; i < length arr} : {arr[i] = foo arr[i]};
+    arr;
+};
+let reduce :: (Int -> Int -> Int) -> [Int] -> Int;
+reduce foo arr := if length arr == 1 then arr[0] else {
+    let acc :: Int; acc = arr[0];
+    let i :: Int; i = 1;
+    while {i++; i < length arr} : {acc = foo acc arr[i]};
+};
+let filter :: (Int -> Bool) -> [Int] -> [Int];
+filter predicate arr := {
+    let res :: [Int]; res = [::];
+    let i :: Int; i = 0;
+    while {i++; i < length arr} : if predicate arr[i] then {res += [:arr[i]:]} else res;
+};
+
+
+let arr :: [Int];
+arr = [: 1, 2, 3 :];
+print ("arr: " + arr);
+
+print " ^2 ";
+arr = map (\x :: Int : x * x) arr;
+print ("arr: " + arr);
+
+print " *3 ";
+arr = map (\x :: Int : x * 3) arr;
+print ("arr: " + arr);
+
+let max :: [Int] -> Int;
+let min :: [Int] -> Int;
+let sum :: [Int] -> Int;
+let product :: [Int] -> Int;
+max = reduce (\x :: Int : \y :: Int : if x > y then x else y);
+min = reduce (\x :: Int : \y :: Int : if x < y then x else y);
+sum = reduce (\x :: Int : \y :: Int : x + y);
+product = reduce (\x :: Int : \y :: Int : x * y);
+
+let not :: Bool -> Bool;
+not b := if b then False else True;
+print ( "Max: " + ( max arr ));
+print ( "Min: " + ( min arr ));
+print ( "Sum: " + ( sum arr ));
+print ( "Product: " + ( product arr ));
+print ( "Uneven elements: " + show (filter (\x :: Int : not (x / 2 * 2 == x)) arr));

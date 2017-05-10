@@ -84,7 +84,8 @@ data Exp
     | SScln Exp Exp
     | SIfStmt Exp Exp Exp
     | SWhile Exp Exp
-    | SBegin Decl Exp
+    | SEBegin Exp Exp
+    | SDBegin Decl Exp
     | FooCall Exp Exp
  -- | FooBind Var [Exp]
     | SLam Var Type Exp

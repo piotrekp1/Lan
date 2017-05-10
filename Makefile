@@ -12,7 +12,7 @@ Tokens:
 
 Lang: Gramma Tokens
 	cd src;\
-	ghc -o ../Lang.out Main.hs
+	ghc -o ../Lan Main.hs
 clean_src:
 	cd src; \
 	rm -f *.hi; \

@@ -2,15 +2,11 @@ module ParseDatatypes2 where
 import Datatypes
 
 data PBlock
-    = PBegin PDecl PSntnc
-    | PDecl PDecl
-    | PSntnc PSntnc
-    deriving Show
-
-data PSntnc
     = PSkip
-    | PScln PSntnc PSntnc
     | PExp0 PExp0
+    | PDecl PDecl
+    | PEBegin PExp0 PBlock
+    | PDBegin PDecl PBlock
     deriving Show
 
 data PExp0
@@ -31,7 +27,7 @@ data PArrIndexes
 
 data PExp1
     = PIf BExp0 BExp0 BExp0
-    | PWhile BExp0 BExp0
+    | PWhile BExp0 PExp1
     | BExp0 BExp0
     deriving Show
 
@@ -56,12 +52,12 @@ data PGrOrLess
     deriving Show
 
 data ArExp0
-    = Ar0Op Op ArExp1 ArExp0
+    = Ar0Op Op ArExp0 ArExp1
     | ArExp1 ArExp1
     deriving Show
 
 data ArExp1
-    = Ar1Op Op PFooCall ArExp1
+    = Ar1Op Op ArExp1 PFooCall
     | PFooCall PFooCall
     deriving Show
 

@@ -33,9 +33,14 @@ evalInfix (OpEQ)  ((BoolT), (BoolD a)) ((BoolT), (BoolD b)) = return (BoolT, Boo
 evalInfix (OpLT)  ((IntT), (Num a)) ((IntT), (Num b)) = return (BoolT, BoolD $ a < b)
 evalInfix (OpGT)  ((IntT), (Num a)) ((IntT), (Num b)) = return (BoolT, BoolD $ a > b)
 evalInfix (OpDiv) ((IntT), (Num a)) ((IntT), (Num 0)) = err "Tried to divide by 0"
+evalInfix (OpAdd) ((Array CharT), DataArray dt1) ((Array CharT), DataArray dt2) = return (Array CharT, DataArray (dt1 ++ dt2))
+evalInfix (OpAdd) (arr@(Array CharT, DataArray dt1)) (tp, dt) = do
+    showed_str <- showDatatype dt
+    evalInfix OpAdd arr showed_str
+evalInfix (OpAdd) (tp, dt) (arr@(Array CharT, DataArray dt1))  = do
+    showed_str <- showDatatype dt
+    evalInfix OpAdd showed_str arr
 evalInfix (OpAdd) ((Array tp1), DataArray dt1) ((Array tp2), DataArray dt2) = return (Array tp1, DataArray (dt1 ++ dt2))
-evalInfix (OpAdd) ((Array CharT, DataArray dt1)) (IntT, Num n) = return(Array CharT, DataArray $ dt1 ++  (map CharD $ show n))
-evalInfix (OpAdd) (IntT, Num n) ((Array CharT, DataArray dt1)) = return(Array CharT, DataArray $ (map CharD $ show n) ++ dt1)
 evalInfix (OpMul) ((Array tp), DataArray dt) ((IntT), Num n) = return (Array tp, DataArray (concat $ replicate n dt))
 evalInfix op      ((IntT), (Num a)) ((IntT), (Num b)) = return (IntT, Num $ getIntOp op a b)
 evalInfix op ((BoolT), (BoolD a)) ((BoolT), (BoolD b)) = return (BoolT, BoolD $ getBoolOp op a b)
@@ -109,8 +114,9 @@ evalEnvFun' (tp, Foo (env, function)) args = local (const env) (evalFun' functio
 
 evalFooCallExps :: [Exp] -> Mementry -> StoreWithEnv Mementry
 evalFooCallExps argexps fooentry@(tp, Foo envfunction) = mapM evalExp' argexps >>= evalEnvFun' fooentry
-evalFooCallExps [] fooentry@(tp, Foo envfunction) = evalEnvFun' fooentry []
-evalFooCallExps [] mementry = return mementry
+evalFooCallExps [] mementry = case mementry of
+     (tp, Foo envfunction) -> evalEnvFun' mementry []
+     otherwise -> return mementry
 evalFooCallExps argexps mementry = err "too many parameters in a call"
 
 
@@ -177,7 +183,13 @@ evalExp' (SScln stmt1 stmt2) = do
         Ign -> return res1
         otherwise -> return res2
 -- Begin block
-evalExp' (SBegin decl stmt) = withDeclared decl (evalExp' stmt)
+evalExp' (SEBegin exp1 exp2) = do
+    res1 <- evalExp' exp1
+    res2@(tp2, val2) <- evalExp' exp2
+    case tp2 of
+        Ign -> return res1
+        otherwise -> return res2
+evalExp' (SDBegin decl stmt) = withDeclared decl (evalExp' stmt)
 -- Function call
 evalExp' (FooCall fooexp argexp) = evalExp' fooexp >>=  callFunction [argexp]
 -- Function bind
@@ -214,7 +226,7 @@ evalExp' (EPreDefFoo (ShowFoo) exp) = do
 
 -- assumes that the argument is SBegin
 runExp' :: Exp -> StoreWithEnv Env
-runExp' (SBegin decl stmt) = do
+runExp' (SDBegin decl stmt) = do
     newEnv <- declareDecl' decl
     local (const newEnv) (evalExp' stmt)
     return newEnv

@@ -11,8 +11,8 @@
 
 (setq lan-highlights
       `(
-       (,lan-char-regexp . font-lock-comment-delimiter-face)
        (,lan-comment-regexp . font-lock-comment-face)
+       (,lan-char-regexp . font-lock-comment-delimiter-face)
        (,lan-keywords-regexp . font-lock-keyword-face)
        (,lan-constants-regexp . font-lock-constant-face)
        (,lan-types-regexp . font-lock-type-face)

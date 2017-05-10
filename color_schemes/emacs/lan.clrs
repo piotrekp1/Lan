@@ -22,7 +22,6 @@
 )
 
 (define-derived-mode lan-mode fundamental-mode "lan"
-  "major mode for editing mymath language code."
   (setq font-lock-defaults '(lan-highlights)))
 
 

@@ -1,0 +1,17 @@
+
+// Random Variable implemenation
+x :: Int;
+temp :: Int;
+
+mod :: Int -> Int -> Int;
+mod a b = a - (a/b*b);
+
+next_rand_10 :: Int -> Int;
+next_rand_10 x = mod (mod ((x + 3) * 2137) 24 * 534) 10;
+
+temp = 5;
+x := temp = next_rand_10 temp;
+
+// usage
+i :: Int; i = 0;
+while i < 10 : print (show x);

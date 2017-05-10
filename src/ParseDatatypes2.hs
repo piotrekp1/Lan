@@ -27,7 +27,7 @@ data PArrIndexes
 
 data PExp1
     = PIf BExp0 BExp0 BExp0
-    | PWhile BExp0 PExp1
+    | PWhile BExp0 PExp0
     | BExp0 BExp0
     deriving Show
 

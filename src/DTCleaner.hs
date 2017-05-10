@@ -43,7 +43,7 @@ semPArrInds (PMltInd pexp0 parrInds) = (semPExp0 pexp0):(semPArrInds parrInds)
 
 semPExp1 :: PExp1 -> Exp
 semPExp1 (PIf bexp0_1 bexp0_2 bexp0_3) = SIfStmt (semBExp0 bexp0_1) (semBExp0 bexp0_2) (semBExp0 bexp0_3)
-semPExp1 (PWhile bexp0_1 pexp1) = SWhile (semBExp0 bexp0_1) (semPExp1 pexp1)
+semPExp1 (PWhile bexp0_1 pexp0) = SWhile (semBExp0 bexp0_1) (semPExp0 pexp0)
 semPExp1 (BExp0 bexp0) = semBExp0 bexp0
 
 semBExp0 :: BExp0 -> Exp

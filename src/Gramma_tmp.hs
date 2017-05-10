@@ -76,7 +76,7 @@ PMementry : var                       { PVar $1 }
       | var PArrIndexes               { PArrEntry $1 $2}
 
 PExp1 : if BExp0 then BExp0 else BExp0 { PIf $2 $4 $6 }
-      | while BExp0 ':' PExp1         { PWhile $2 $4 }
+      | while BExp0 ':' PExp0         { PWhile $2 $4 }
       | BExp0                         { BExp0 $1 }
 
 BExp0 : BExp1 or BExp0                { POr $1 $3 }
@@ -135,7 +135,7 @@ PArrIndexes : '[' PExp0 ']'           { PSngInd $2 }
 -- ---------------------------- Decl
 
 PDecl :                               { PDSkip }
-      | let var '::' PFooType         { PSingDecl $2 $4}
+      | var '::' PFooType         { PSingDecl $1 $3}
       | PDecl separator PDecl         { PDScln $1 $3 }
       | PFooArgNames ':=' PExp0       { PFooDef $1 $3 } -- todo: powoduje kolizję gramatyki
 

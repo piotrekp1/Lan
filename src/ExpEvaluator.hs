@@ -212,6 +212,22 @@ evalExp' (EPreDefFoo (ShowFoo) exp) = do
         (Array CharT) -> return res
         otherwise -> showDatatype res_val
 
+-- assumes that the argument is SBegin
+runExp' :: Exp -> StoreWithEnv Env
+runExp' (SBegin decl stmt) = do
+    newEnv <- declareDecl' decl
+    local (const newEnv) (evalExp' stmt)
+    return newEnv
+runExp' exp = do
+    env <- ask
+    evalExp' exp
+    return env
+
+runBlock :: Env -> Store -> Exp -> Either Exception ((Env, Store), [String])
+runBlock env store exp = runWriterT $ runReaderT (runStateT (runExp' exp) store) env
+
+checkBlock :: Env -> Store -> Exp -> Either Exception ((Type,Store), [String])
+checkBlock env store exp = runWriterT $ runReaderT (runStateT (checkExp' exp) store) env
 
 execStmt :: Exp -> Either Exception ((Mementry, Store), [String])
 execStmt stmt = execStoreWithEnv $ evalExp' stmt

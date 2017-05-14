@@ -1,0 +1,4 @@
+x :: [Int];
+b :: Int;
+x = [:1,2,3:]; // arrays are 0-indexed.
+b = x[3]; // similar error for division by 0;

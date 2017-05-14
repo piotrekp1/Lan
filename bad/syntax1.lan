@@ -1,0 +1,10 @@
+foo :: Int -> Int;
+foo z := {
+    x :: Int;
+    x = 3;
+    x + z;
+}  // there must be a semicolon here!
+
+z :: Int;
+z = foo 3; 
+print (show z) // here is not necessary

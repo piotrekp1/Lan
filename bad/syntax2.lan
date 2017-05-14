@@ -1,0 +1,5 @@
+//arrays
+arr :: [Int];
+arr = [1, 2, 3, 4, 5] // should be [:1, 2, 3, 4, 5:], arrays in place have syntax [: elements :]
+// this is due to the ambiguity of the syntax, e.g.:
+// foo [1] - should this be a call to a foo with instantialisation of an array in place or taking the 1st element of an array called foo? it has to be decided on the syntax level, but it is impossible in that way. with [: :] it is clear that foo [1] is call to array and foo [:1:] is calling function foo :: [Int] -> something; 

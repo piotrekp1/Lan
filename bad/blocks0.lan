@@ -1,0 +1,10 @@
+foo :: Int -> Int;
+foo x := {
+    foo_inside :: Int -> Int -> Int;
+    z :: Int;
+    foo_inside x y := x + y;
+    z = foo_inside x 5;
+};
+
+a :: Int;
+a = foo_inside 2 3; //foo_inside not visible here

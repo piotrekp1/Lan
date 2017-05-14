@@ -1,0 +1,64 @@
+// combination of many lan features in an implementation of basic functional operations, lambdas, arrays, length and print functions, ++, appending, etc
+x :: Int;
+x = 8;
+i :: Int;
+i = 0;
+z :: Int -> Int;
+z x := {
+    i++;
+    x * i;
+};
+x = 1;
+i2 :: Int;
+i2 = 0;
+
+
+map :: (Int -> Int) -> [Int] -> [Int];
+map foo arr := {
+    i :: Int;
+    i := 0;
+    while {i++; i < length arr} : {arr[i] = foo arr[i]};
+    arr;
+};
+reduce :: (Int -> Int -> Int) -> [Int] -> Int;
+reduce foo arr := if length arr == 1 then arr[0] else {
+    acc :: Int; acc = arr[0];
+    i :: Int; i = 1;
+    while {i++; i < length arr} : {acc = foo acc arr[i]};
+};
+filter :: (Int -> Bool) -> [Int] -> [Int];
+filter predicate arr := {
+    res :: [Int]; res = [::];
+    i :: Int; i = 0;
+    while {i++; i < length arr} : if predicate arr[i] then {res += [:arr[i]:]} else res;
+};
+
+
+arr :: [Int];
+arr = [: 1, 2, 3 :];
+print ("arr: " + arr); // string + a, is like string + show a 
+
+print " ^2 ";
+arr = map (\x :: Int : x * x) arr;
+print ("arr: " + arr);
+
+print " *3 ";
+arr = map (\x :: Int : x * 3) arr;
+print ("arr: " + arr); 
+
+max :: [Int] -> Int;
+min :: [Int] -> Int;
+sum :: [Int] -> Int;
+product :: [Int] -> Int;
+max = reduce (\x :: Int : \y :: Int : if x > y then x else y);
+min = reduce (\x :: Int : \y :: Int : if x < y then x else y);
+sum = reduce (\x :: Int : \y :: Int : x + y);
+product = reduce (\x :: Int : \y :: Int : x * y);
+
+not :: Bool -> Bool;
+not b := if b then False else True;
+print ( "Max: " + ( max arr ));
+print ( "Min: " + ( min arr ));
+print ( "Sum: " + ( sum arr ));
+print ( "Product: " + ( product arr ));
+print ( "Uneven elements: " + show (filter (\x :: Int : not (x / 2 * 2 == x)) arr));

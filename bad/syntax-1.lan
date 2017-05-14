@@ -1,0 +1,7 @@
+// i called it a '-1' because it's not a bad program but a bug of the compiler, i planned to fix it the last day, but the other project have overwhelmed me, 
+
+num :: Int;
+num = 5;
+foo :: Int -> Int;
+foo a := a;
+foo num; // this is ambiguous because the parser think that this part of declaration - foo num := ..., so it is surprised when it sees a semicolon.

@@ -6,10 +6,12 @@ Imperative functionally oriented language
 
 enter the main directory with Makefile and build the project <br/>
 `make`<br/>
-then you can run some test program from tests directory for example with <br/>
-`./runTest.sh 5`<br/>
-to put your own program into interpreter type:<br/>
-`cat program_name | Lang.out`<br/>
+then you can run programs with <br/>
+`./Lan <program_name>`<br/>
+or you can launch a repl with<br/>
+`./Lan`<br/>
+for help enter <br/>
+ `./Lan -h` <br/>
 
 ### Color schemes
 there are color schemes made for emacs, they are in the color_schemes folder, to launch them open the file 

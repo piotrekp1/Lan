@@ -67,7 +67,7 @@ showStore = showStoreHelper 0 0
 
 showStoreHelper :: Int -> Int -> Store -> IO()
 showStoreHelper counter iter st = do
-    if counter == length st
+    if counter == DMap.size st
         then return ()
         else case DMap.lookup iter st of
             Nothing -> showStoreHelper counter (iter + 1) st

@@ -22,3 +22,4 @@ clean_src:
 	rm -f *.out	
 clean: clean_src
 	rm -f *.out
+	rm Lan

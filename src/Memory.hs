@@ -21,7 +21,7 @@ overwriteVar var loc = do
     env <- ask
     return [ if(var1 == var) then (var, loc) else envEl | envEl@(var1 ,loc1) <- env ]
 
-nextLoc :: StoreWithEnv Loc -- todo: find some better way to find nextLoc
+nextLoc :: StoreWithEnv Loc
 nextLoc = do
     store <- get
     return $ nextLocHelper 0 store

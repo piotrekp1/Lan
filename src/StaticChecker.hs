@@ -62,6 +62,8 @@ footypeFromExpVars (varName:varRest) (FooT from_tp to_tp) exp = do
     to_type_got <- local (const newEnv) (footypeFromExpVars varRest to_tp exp)
     return $ FooT from_tp to_type_got
 footypeFromExpVars [] tp exp = checkExp' exp
+footypeFromExpVars vars tp exp = do
+    err $ "too much parameters in a function definition, excessive variables: " ++ show vars
 
 
 --assumes there is no FooT in array
@@ -69,7 +71,7 @@ footypeFromArray :: [Type] -> Type
 footypeFromArray [t] = t
 footypeFromArray (t:rest) = FooT t (footypeFromArray rest)
 
-
+-- checks if arguments types fit the expected types
 checkFooCallType' :: [Exp] -> Type -> StoreWithEnv Type -- name is used only for a error message
 checkFooCallType' [] footype = return footype
 checkFooCallType' (firstarg:rest) footype = do
@@ -84,6 +86,7 @@ checkFooCallType' (firstarg:rest) footype = do
                            show footype ++ "arg: " ++ show firstarg
 
 
+-- syntactic sugar for declaring variable and checking new exp with it
 withDeclaredCheck :: Decl -> StoreWithEnv a -> StoreWithEnv a
 withDeclaredCheck decl prog = do
     newEnv <- checkDecl' decl
@@ -101,9 +104,9 @@ checkTypeCalled (exp_ind:rest) tp = do
         otherwise -> err "a array call to something that is not an array"
 
 checkExp' :: Exp -> StoreWithEnv Type
--- sama wartosc
+-- just a value
 checkExp' (EVal (tp, dt)) = return tp
--- zlozenie wyrazen
+-- infix operation
 checkExp' (EOp op exp1 exp2) = do
     type1 <- checkExp' exp1
     type2 <- checkExp' exp2
@@ -115,7 +118,7 @@ checkExp' (EArrDef (fst_exp:rest_exps)) = do
     (Array rest_tp) <- checkExp' $ EArrDef rest_exps
     assertTrue (fst_tp == rest_tp) ("not consistent types in an array")
     return $ Array fst_tp
--- ewaluacja zmiennej
+-- variable
 checkExp' (EMementry (Variable varName)) = getType varName
 checkExp' (EMementry (ArrayEl varName ind_exps)) = getType varName >>= checkTypeCalled ind_exps
 -- skip
@@ -156,10 +159,10 @@ checkExp' (SEBegin exp1 exp2) = do
 checkExp' (SDBegin decl stmt) = withDeclaredCheck decl (checkExp' stmt)
 -- Function call
 checkExp' (FooCall fooexp argexp) = checkExp' fooexp >>= checkFooCallType' [argexp]
--- Function bind
-{-checkExp' (FooBind fooname args) = checkExp' (FooCall fooname args)-}
 -- Lambda
 checkExp' (SLam var vartype fooexp) = withDeclaredCheck (FooDcl var vartype) (checkExp' fooexp >>= return . (FooT vartype))
+-- emptyLambda
+checkExp' (SEmptyLam fooexp) = checkExp' fooexp
 -- array call
 checkExp' (EArrCall arrexp argexp) = do
     arrType <- checkExp' arrexp

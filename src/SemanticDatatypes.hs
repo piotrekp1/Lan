@@ -63,6 +63,7 @@ instance Show Type where
     show (FooT tp1 tp2) = "(" ++ show tp1 ++ " -> " ++ show tp2 ++ ")"
     show (Ign) = "Ign"
     show (Array tp) = "[" ++ show tp ++ "]"
+
 data Datatype
     = Num Int
     | BoolD Bool
@@ -87,8 +88,8 @@ data Exp
     | SEBegin Exp Exp
     | SDBegin Decl Exp
     | FooCall Exp Exp
- -- | FooBind Var [Exp]
     | SLam Var Type Exp
+    | SEmptyLam Exp
     | OpMod EMementry Op
     | EArrCall Exp Exp
     | EPreDefFoo PreDefFoo Exp
@@ -99,7 +100,7 @@ data EMementry
     | ArrayEl Var [Exp]
     deriving Show
 
-data PreDefFoo -- todo: dodac semantykę
+data PreDefFoo
     = Print
     | Length
     | ShowFoo

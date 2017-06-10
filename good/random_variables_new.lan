@@ -1,0 +1,68 @@
+// Note:
+//
+// I said that i will add a lazy call that will enable random variables
+// from a different ranges with a single functions.
+//
+// I imagined it in the following manner:
+//
+// foo a b; -- standard call
+// lazy foo a b; -- lazy call
+//
+// where lazy call would mean that instead of having foo called immediatelly
+// we return a computation that in the moment of a call calls foo with a and b;
+// but then i realised that this is just the same as a lambda, so what i need is
+// not a lazy mode, but a lambda without arguments.
+//
+// so i decided that better syntax for it would be
+// \: lazy foo a b;
+// which is natural continuation, when
+// \ x :: Int : y :: Int : x * y; - is 2 lambda 'with 2 arguments'
+// and \x :: Int : x * 2; - lambda with one argument
+// so \: is a syntax for defining a lambda without arguments, as defined below
+
+print("RANDOM VARIABLES DEMO \n");
+// utils 
+mod :: Int -> Int -> Int;
+def mod a b := a - (a/b*b);
+
+// random variable function 
+seed :: Int;
+seed = 58235;
+
+// rand range_start range_end
+// returns a random number in a range [range_start, range_end)
+// assumes that range_end > 0 
+rand :: Int -> Int -> Int;
+def rand range_start range_end := {
+// not the best random number generator but it's just a presentation
+    range_len :: Int; range_len = range_end - range_start;
+    new_seed :: Int; retval :: Int;
+    new_seed = seed + mod seed 17 * 2;
+    retval = range_start + mod seed range_len;
+    seed = new_seed;
+    retval;
+};
+
+// use
+i :: Int;
+
+print("Range from 0 to 10.");
+VAR_0_10 :: Int; // our first random variable
+VAR_0_10 = \: rand 0 10;
+i = 0;
+while i < 10: {
+    print( i + "'th iteration: " + VAR_0_10);
+    i++;     
+};
+
+print("---------------\n\n");
+
+
+print("Range from 11 to 14.");
+VAR_11_14 :: Int; // our second random variable
+VAR_11_14 = \: rand 11 14; // both are made using the same function!
+i = 0;
+while i < 10: {
+    print( i + "'th iteration: " + VAR_11_14);
+    i++;     
+};

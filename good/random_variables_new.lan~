@@ -1,0 +1,38 @@
+// interesting consequence of combining functional - functions are variables - motto with a state
+
+
+// Random Variable implemenation
+x :: Int;
+temp :: Int;
+temp2 :: Int;
+temp2 = 1;
+
+mod :: Int -> Int -> Int;
+def mod a b := a - (a/b*b);
+
+even :: Int -> Bool;
+def even x := mod x 2 == 0;
+
+next_rand :: Int -> Int;
+def next_rand range_beginning range_end x := {
+    diff :: Int; diff = range_end - range_beginning;
+    temp2 += x + 3001; // some cheap implemenation of a random function
+    if even temp2 then mod ((temp2)*2197) diff else mod ((temp2 + 7)/2* 3187) diff;
+    temp2 + range_beginning;
+};
+
+next :: Int -> Int;
+def next x := x + 1;
+
+
+temp = 5;
+def x := temp = next_rand 0 10 temp;
+
+// usage
+i :: Int;
+i = 0;
+while i < 10 : {
+      print("x: " + x);
+      i++;
+};
+

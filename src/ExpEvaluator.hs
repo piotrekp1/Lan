@@ -86,10 +86,14 @@ withDeclared decl prog = do
     local (const newEnv) prog
 
 
+-- function always call as deep as they can.
+-- so for example when function is a rawExp with a function inside
+-- it will evaluate the rawExp and call the function inside.
+--
 -- assumes that tp doesnt consist FooT
 evalFun' :: Function -> [Type] -> [Mementry]  -> StoreWithEnv Mementry
 -- entire specification
-evalFun' (RawExp exp) tp args = do -- evalExp' exp bylo todo: zrobic rozroznienie pomiedzy bindem a callem
+evalFun' (RawExp exp) tp args = do
     true_foo <- evalExp' exp
     case true_foo of
         fooentry@(tp, (Foo envfunction2)) -> evalEnvFun' fooentry args
@@ -111,7 +115,7 @@ evalEnvFun' :: Mementry -> [Mementry] -> StoreWithEnv Mementry
 evalEnvFun' (tp, Foo (env, function)) args = local (const env) (evalFun' function tps args)
     where tps = footypes tp
 
-
+-- helper function used to handle many arguments
 evalFooCallExps :: [Exp] -> Mementry -> StoreWithEnv Mementry
 evalFooCallExps argexps fooentry@(tp, Foo envfunction) = mapM evalExp' argexps >>= evalEnvFun' fooentry
 evalFooCallExps [] mementry = case mementry of
@@ -130,9 +134,9 @@ callFunction _ (tp, (Undefined)) = err "call to a function that was not defined"
 callFunction argexps mementry = err $ show mementry ++ "\n ---- \n" ++ show argexps
 
 evalExp' :: Exp -> StoreWithEnv Mementry
--- sama wartosc
+-- just a value
 evalExp' (EVal b) = return b
--- zlozenie wyrazen
+-- infix operation
 evalExp' (EOp op exp1 exp2) = do
     res1 <- evalExp' exp1
     res2 <- evalExp' exp2
@@ -143,8 +147,8 @@ evalExp' (EArrDef (fst_exp:rest_exps)) = do
     (fst_tp, fst_el) <- evalExp' fst_exp
     (Array rest_tp, (DataArray rest_arr)) <- evalExp' $ EArrDef rest_exps
     return (Array fst_tp, DataArray (fst_el:rest_arr))
--- ewaluacja zmiennej
-evalExp' (EMementry (Variable varName)) = getNonEmptyValue varName >>= evalFooCallExps [] -- todo move everything to a foo call?
+-- variable
+evalExp' (EMementry (Variable varName)) = getNonEmptyValue varName >>= evalFooCallExps []
 evalExp' (EMementry (ArrayEl varName [])) = evalExp' (EMementry (Variable varName))
 evalExp' (EMementry (ArrayEl varName ind_exps)) = do
     let call_args = init ind_exps
@@ -192,13 +196,17 @@ evalExp' (SEBegin exp1 exp2) = do
 evalExp' (SDBegin decl stmt) = withDeclared decl (evalExp' stmt)
 -- Function call
 evalExp' (FooCall fooexp argexp) = evalExp' fooexp >>=  callFunction [argexp]
--- Function bind
-{-evalExp' (FooBind fooname argexps) = getValue fooname >>= evalFooCallExps argexps-}
 -- lambda
 evalExp' lambda@(SLam var vartype fooexp) = do
     env <- lift ask
     tp <- checkExp' lambda
     let funEnv = Foo (env, fooFromExpVars [var] fooexp)
+    return (tp, funEnv)
+-- empty lambda
+evalExp' (SEmptyLam fooexp) = do
+    env <- lift ask
+    tp <- checkExp' fooexp
+    let funEnv = Foo (env, RawExp fooexp)
     return (tp, funEnv)
 -- array call
 evalExp' (EArrCall arrexp argexp) = do

@@ -1,0 +1,8 @@
+foo :: Int -> Int;
+z :: Int;
+z = 2;
+def foo x := {
+    foo2 :: Int;
+    def foo2 := z * 2;
+};
+

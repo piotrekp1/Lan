@@ -8,13 +8,15 @@ import Control.Monad.Writer
 import qualified Data.Map as DMap
 import Memory
 
-
+-- function responsible for throwing an error in a Lan language
 err :: String -> StoreWithEnv a
 err = lift . lift . lift . Left
 
+-- packing of the error (err) function to assert type matches, correct call adresses etc.
 assertTrue :: Bool -> String -> StoreWithEnv Type
-assertTrue predicate message = if not predicate then err message else return Ign -- todo upewnic się że to nie szkodzi
+assertTrue predicate message = if not predicate then err message else return Ign
 
+-- gets location of the variable - HANDLES ERRORS
 getLoc :: Var -> StoreWithEnv Loc
 getLoc varName = do
     env <- lift ask
@@ -23,6 +25,7 @@ getLoc varName = do
         Nothing -> err err_message
         Just loc -> return loc
 
+-- gets value of the variable - HANDLES ERRORS
 getValue :: Var -> StoreWithEnv Mementry
 getValue varName = getLoc varName >>= \loc -> do
     store <- get
@@ -31,12 +34,13 @@ getValue varName = getLoc varName >>= \loc -> do
          Nothing -> err err_message
          Just tp_dt -> return tp_dt
 
-
+-- gets type of the variables -- HANDLES ERRORS
 getType :: Var -> StoreWithEnv Type
 getType varName = do
     (tp, dt) <- getValue varName
     return tp
 
+-- gets value of the variable and asserts that it was defined -- HANDLES ERRORS
 getNonEmptyValue :: Var -> StoreWithEnv Mementry
 getNonEmptyValue varName = do
     res@(tp, dt) <- getValue varName
@@ -61,6 +65,7 @@ getArrayEl mementry ind = err ("internal error: getArrayEl, mementry: " ++ show 
 
 execStoreWithEnv :: StoreWithEnv a -> Either Exception ((a, Store), [String])
 execStoreWithEnv monad = runWriterT $ runReaderT (runStateT monad DMap.empty) []
+
 
 showStore :: Store -> IO()
 showStore = showStoreHelper 0 0
@@ -90,6 +95,7 @@ replaceEl arr ind newEl = x ++ newEl:ys  where
         (x,_:ys) = splitAt ind arr
 
 
+-- replace element in a nested array, used for example in a arr[5][3] = 8 call
 replaceNestedEl :: Datatype -> [Int] -> Datatype -> StoreWithEnv Datatype
 replaceNestedEl (DataArray arr) (ind:rest_ind) newEl = do
     let len = length arr

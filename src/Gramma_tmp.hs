@@ -1,7 +1,7 @@
 {
 module Gramma  where
 import Data.Char
-import ParseDatatypes2
+import ParseDatatypes
 import Datatypes
 import Tokens
 }
@@ -20,6 +20,7 @@ import Tokens
       else            { TokenElse }
       let             { TokenLet }
       in              { TokenIn }
+      def             { TokenDef }
       int             { TokenInt $$ }
       bool            { TokenBool $$ }
       char            { TokenChar $$ }
@@ -55,7 +56,6 @@ import Tokens
       ':]'            { TokenArrDefCB }
       '['             { TokenArrayOB }
       ']'             { TokenArrayCB }
-      def             { TokenDef }
 
 %%
 
@@ -119,6 +119,7 @@ Value : int                           { IntP $1 }
       | '[:' ArrData ':]'             { ArrayP $2 }
       | '[:' ':]'                     { ArrayP ArrNothing }
       | '\\' var '::' PFooType ':' PExp0 { PLambda $2 $4 $6}
+      | '\\' ':' PExp0 { PEmptyLambda $3 }
 
 ArrData : PExp0 ',' ArrData             { ArrEls $1 $3 }
       | PExp0                          { ArrEl $1 }
@@ -138,7 +139,7 @@ PArrIndexes : '[' PExp0 ']'           { PSngInd $2 }
 PDecl :                               { PDSkip }
       | var '::' PFooType         { PSingDecl $1 $3}
       | PDecl separator PDecl         { PDScln $1 $3 }
-      | def PFooArgNames ':=' PExp0       { PFooDef $2 $4 } -- todo: powoduje kolizję gramatyki
+      | def PFooArgNames ':=' PExp0       { PFooDef $2 $4 }
 
 PFooArgNames : var                    { PVarName $1 }
       | var PFooArgNames              { PVarNames $1 $2}

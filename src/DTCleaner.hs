@@ -1,8 +1,14 @@
 module DTCleaner where
-import ParseDatatypes2
+import ParseDatatypes
 import SemanticDatatypes
 import Datatypes
 
+-- Module in the middle, made to separate semantic types from syntactic types
+-- translates semantic types (called parseDatatypes) to semantic datatypes
+
+
+---
+-- helper functions --
 getType :: String -> Type
 getType "Int" = IntT
 getType "Bool" = BoolT
@@ -15,6 +21,8 @@ preDefFooFromName "print" = Print
 preDefFooFromName "length" = Length
 preDefFooFromName "show" = ShowFoo
 -------------
+-- the translation --
+-- Exp --
 
 semPBlock :: PBlock -> Exp
 semPBlock (PSkip) = Skip
@@ -91,6 +99,7 @@ semValue (CharP a) = EVal $ (CharT, CharD a)
 semValue (StringP str) = EVal $ (Array CharT, DataArray $ map CharD str)
 semValue (ArrayP arrdata) = EArrDef $ semArrData arrdata
 semValue (PLambda var vartype fooexp) = SLam var (semPFooType vartype) (semPExp0 fooexp)
+semValue (PEmptyLambda fooexp) = SEmptyLam $ semPExp0 fooexp
 
 semArrData :: ArrData -> [Exp]
 semArrData (ArrNothing) = []
@@ -106,7 +115,8 @@ semPType (PRawType type_str) = getType type_str
 semPType (PTypeBrack pfootype) = semPFooType pfootype
 semPType (PTypeArray pfootype) = Array $ semPFooType pfootype
 
------ Decl
+-----
+-- Decl --
 
 semPDecl :: PDecl -> Decl
 semPDecl (PDSkip) = DSkip

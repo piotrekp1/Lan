@@ -55,6 +55,7 @@ import Tokens
       ':]'            { TokenArrDefCB }
       '['             { TokenArrayOB }
       ']'             { TokenArrayCB }
+      def             { TokenDef }
 
 %%
 
@@ -137,7 +138,7 @@ PArrIndexes : '[' PExp0 ']'           { PSngInd $2 }
 PDecl :                               { PDSkip }
       | var '::' PFooType         { PSingDecl $1 $3}
       | PDecl separator PDecl         { PDScln $1 $3 }
-      | PFooArgNames ':=' PExp0       { PFooDef $1 $3 } -- todo: powoduje kolizję gramatyki
+      | def PFooArgNames ':=' PExp0       { PFooDef $2 $4 } -- todo: powoduje kolizję gramatyki
 
 PFooArgNames : var                    { PVarName $1 }
       | var PFooArgNames              { PVarNames $1 $2}

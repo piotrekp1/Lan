@@ -1,4 +1,4 @@
 foo :: Int -> Int ->Int;
-foo z y := z + 3;
+def foo z y := z + 3;
 z :: Int;
 z = foo 2 3 1; //too many arguments

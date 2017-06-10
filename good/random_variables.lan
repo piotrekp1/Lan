@@ -8,23 +8,23 @@ temp2 :: Int;
 temp2 = 1;
 
 mod :: Int -> Int -> Int;
-mod a b := a - (a/b*b);
+def mod a b := a - (a/b*b);
 
 even :: Int -> Bool;
-even x := mod x 2 == 0;
+def even x := mod x 2 == 0;
 
 next_rand_10 :: Int -> Int;
-next_rand_10 x := {
+def next_rand_10 x := {
     temp2 += x + 3001; // some cheap implemenation of a random function
     if even temp2 then mod ((temp2)*2197) 7 else mod ((temp2 + 7)/2* 3187) 7;
 };
 
 next :: Int -> Int;
-next x := x + 1;
+def next x := x + 1;
 
 
 temp = 5;
-x := temp = next_rand_10 temp;
+def x := temp = next_rand_10 temp;
 
 // usage
 

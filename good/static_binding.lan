@@ -1,11 +1,11 @@
 x :: Int; // outer_x
 foo :: Int -> Int;
-foo z := {
+def foo z := {
     x += 3; // add 3 to outer_x
 };
 x = 0;
 foo2 :: Int -> Int;
-foo2 z := {
+def foo2 z := {
     x :: Int; // inner_x
     z :: Int;
     x = 0;

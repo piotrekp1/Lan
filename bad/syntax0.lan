@@ -1,2 +1,2 @@
 x :: Int -> Int;
-x a = a + 3; // should be x a := a + 3
+def x a = a + 3; // should be def x a := a + 3

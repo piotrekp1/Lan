@@ -1,0 +1,42 @@
+
+// 24 points feature, arbitrarly nested definitions with correctness of static binding.
+main :: Int;
+def main := {
+    foo1 :: Int -> Int;
+    foo2 :: Int -> Int;
+    foo1_1 :: Int -> Int;
+    def foo1 x := {
+    	foo3 :: Int -> Int;
+	y :: Int;
+	    def foo2 x := {
+    	    	x = 1;
+		def foo3 x := x = x*3; // the outer x stays as it was
+		foo3 x;
+	    };
+	y = foo2 x;
+	print("Inside of a foo1");
+	print("y: " + y + ", x: " + x); // auto casting to string
+	print(" ");
+        // x - the same as it was
+        def foo2 x := if x == 0 then 1 else x * foo2 (x-1);
+        // factorial - note, it uses the right foo2 (the new one, not the old one)
+
+        x = foo2 x;
+        x; // so foo1 x = factorial of x
+    };
+
+    def foo1_1 x := {
+    	y :: Int;
+	y = foo2 x; // works fine because foo2 was defined in the main scope
+
+	// !!!!!!
+	//y = foo3 x;  -- won't work because foo3 is not visible here (please uncomment and see)
+	
+
+    };
+
+
+    print("foo1 5 = " + foo1 5 + "\n" + "foo1_1 5 =" + foo1_1 5);
+    0; // return 0;
+};
+main;

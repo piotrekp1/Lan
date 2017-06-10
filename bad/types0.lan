@@ -1,4 +1,4 @@
 num :: Int;
 foo :: Bool -> Int;
-foo z := 5;
+def foo z := 5;
 num = foo num; 

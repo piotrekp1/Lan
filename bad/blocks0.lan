@@ -1,5 +1,5 @@
 foo :: Int -> Int;
-foo x := {
+def foo x := {
     foo_inside :: Int -> Int -> Int;
     z :: Int;
     foo_inside x y := x + y;

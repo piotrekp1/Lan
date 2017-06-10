@@ -1,5 +1,5 @@
 foo :: Int -> Int -> Int;
-foo z := (\x :: Int : z + x);
+def foo z := (\x :: Int : z + x);
 a :: Int;
 a = foo 2 3;
 print(show(a));

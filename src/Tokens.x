@@ -16,6 +16,7 @@ tokens :-
    else                       { \s -> TokenElse }
    let                        { \s -> TokenLet }
    in                         { \s -> TokenIn }
+   def                        { \s -> TokenDef }
    bind                       { \s -> TokenBind }
    Int                        { \s -> TokenType s }
    Bool                       { \s -> TokenType s }
@@ -112,6 +113,7 @@ data Token
       | TokenMod String
       | TokenNotEq
       | TokenPreDefFoo String
+      | TokenDef
       deriving Show
 
 lanTokens = alexScanTokens

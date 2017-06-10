@@ -1,0 +1,18 @@
+foo1 :: Int -> Int;
+foo2 :: Int -> Int;
+def foo1 x := {
+    foo3 :: Int -> Int;
+    x = 5;
+    def foo2 x := {
+    	x = 1;
+    	def foo3 x := x = x*3; // the outer x stays as it was
+	foo3 x;
+    }
+    x = foo2 x
+    def foo2 x := if x == 0 then 0 else x * foo2 (x-1);
+    // factorial - note, it uses the right foo2 (the new one, not the old one)
+    
+    foo3 5;
+}
+
+print(show(foo 1));
